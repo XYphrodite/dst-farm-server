@@ -25,6 +25,7 @@ internal sealed class Dashboard
     private string? editingBuffer;
     private string message = string.Empty;
     private bool busy;
+    private SteamProgress? download;
 
     private ServerSupervisor? supervisor;
     private CancellationTokenSource? supervisorCts;
@@ -241,7 +242,8 @@ internal sealed class Dashboard
         try
         {
             var installer = new SteamCmdInstaller(config);
-            await installer.InstallServerAsync(validate: true, line => log.Add(line), cancellationToken).ConfigureAwait(false);
+            var progress = new Progress<SteamProgress>(report => download = report);
+            await installer.InstallServerAsync(validate: true, line => log.Add(line), progress, cancellationToken).ConfigureAwait(false);
             config.Save();
             message = "сервер установлен";
         }
@@ -253,7 +255,20 @@ internal sealed class Dashboard
         finally
         {
             busy = false;
+            download = null;
         }
+    }
+
+    /// <summary>Текстовый бар: внутри Live-дисплея встроенный прогресс Spectre использовать нельзя.</summary>
+    private static string RenderBar(SteamProgress report, int cells = 24)
+    {
+        var filled = (int)Math.Round(Math.Clamp(report.Percent, 0, 100) / 100 * cells);
+        var bar = new string('#', filled) + new string('-', cells - filled);
+        var text = report.HasTotal
+            ? $"{report.Percent:F1}%  {SteamProgress.Format(report.BytesDone)} / {SteamProgress.Format(report.BytesTotal)}"
+            : $"{report.Percent:F1}%";
+        var state = string.IsNullOrWhiteSpace(report.State) ? "загрузка" : report.State;
+        return $"[cyan][[{Markup.Escape(bar)}]][/] {Markup.Escape(text)}  [grey]{Markup.Escape(state)}[/]";
     }
 
     private async Task ToggleServerAsync(CancellationToken cancellationToken)
@@ -368,6 +383,8 @@ internal sealed class Dashboard
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
         var state = supervisorTask is not null ? "[green]сервер работает[/]" : "[grey]сервер остановлен[/]";
         var dirty = clusterDirty ? "  [yellow]есть непринятые изменения (G)[/]" : string.Empty;
+        if (download is { } report)
+            return $"[bold]dstfarm {version}[/]   {RenderBar(report)}";
         return $"[bold]dstfarm {version}[/]   {state}{dirty}";
     }
 

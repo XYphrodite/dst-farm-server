@@ -96,7 +96,7 @@ Q / Esc      выход (настройки сохраняются)
 | Команда | Что делает |
 | --- | --- |
 | `dstfarm` | полноэкранный интерфейс |
-| `dstfarm install [--no-validate]` | steamcmd + установка/обновление сервера (app 343050, вход анонимный) |
+| `dstfarm install [--no-validate]` | steamcmd + установка/обновление сервера (app 343050) с прогресс-баром |
 | `dstfarm init [--force]` | генерирует `cluster.ini`, шарды, `worldgenoverride.lua` |
 | `dstfarm token <ТОКЕН>` | записывает `cluster_token.txt` |
 | `dstfarm start [--detach]` | супервизор: запускает шарды, перезапускает при падении |

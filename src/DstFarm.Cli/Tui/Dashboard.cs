@@ -207,8 +207,11 @@ internal sealed class Dashboard
             case ConsoleKey.G:
                 ApplyCluster();
                 break;
+            case ConsoleKey.U:
+                await SelfUpdateAsync(cancellationToken).ConfigureAwait(false);
+                break;
             case ConsoleKey.F1:
-                message = "стрелки — выбор и значение, Enter — правка, S — старт/стоп, I — установка, G — применить, Q — выход";
+                message = "стрелки — выбор и значение, Enter — правка, S — старт/стоп, I — установка сервера, G — применить, U — обновить dstfarm, Q — выход";
                 break;
             case ConsoleKey.Q:
             case ConsoleKey.Escape:
@@ -269,6 +272,65 @@ internal sealed class Dashboard
             : $"{report.Percent:F1}%";
         var state = string.IsNullOrWhiteSpace(report.State) ? "загрузка" : report.State;
         return $"[cyan][[{Markup.Escape(bar)}]][/] {Markup.Escape(text)}  [grey]{Markup.Escape(state)}[/]";
+    }
+
+    private async Task SelfUpdateAsync(CancellationToken cancellationToken)
+    {
+        if (busy)
+        {
+            message = "дождитесь окончания текущей операции";
+            return;
+        }
+
+        if (supervisorTask is not null)
+        {
+            message = "сначала остановите сервер клавишей S";
+            return;
+        }
+
+        if (Environment.ProcessPath is not { } exePath)
+        {
+            message = "не удалось определить путь к dstfarm.exe";
+            return;
+        }
+
+        busy = true;
+        message = "проверяю обновления";
+        try
+        {
+            var updater = new SelfUpdater();
+            var release = await updater.FetchLatestAsync(cancellationToken).ConfigureAwait(false);
+            if (release is null)
+            {
+                message = "релиз с файлом dstfarm.exe не найден";
+                return;
+            }
+
+            var current = SelfUpdater.CurrentVersion;
+            if (release.Version <= current)
+            {
+                message = $"уже последняя версия ({current.ToString(3)})";
+                return;
+            }
+
+            log.Add($"найдено обновление {release.Tag}, качаю");
+            var progress = new Progress<SteamProgress>(report => download = report);
+            var file = await updater.DownloadAsync(release, progress, cancellationToken).ConfigureAwait(false);
+            SelfUpdater.Apply(file, exePath);
+
+            message = $"обновлено до {release.Version.ToString(3)} — перезапустите dstfarm";
+            log.Add($"новая версия установлена: {exePath}");
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException or IOException)
+        {
+            log.Add($"обновление не удалось: {exception.Message}");
+            message = "обновление не удалось, подробности в логе";
+        }
+        finally
+        {
+            busy = false;
+            download = null;
+        }
     }
 
     private async Task ToggleServerAsync(CancellationToken cancellationToken)
@@ -475,6 +537,6 @@ internal sealed class Dashboard
             return "[cyan]Enter[/] применить   [cyan]Esc[/] отмена";
         var toggle = supervisorTask is not null ? "остановить" : "запустить";
         return $"[cyan]стрелки[/] выбор/значение   [cyan]Enter[/] правка   [cyan]S[/] {toggle}   " +
-               $"[cyan]I[/] установить сервер   [cyan]G[/] применить настройки   [cyan]Q[/] выход";
+               $"[cyan]I[/] установить сервер   [cyan]G[/] применить   [cyan]U[/] обновить   [cyan]Q[/] выход";
     }
 }

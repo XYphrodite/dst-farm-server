@@ -90,3 +90,5 @@ dstfarm stop
 dstfarm install
 dstfarm start --detach
 ```
+
+Саму утилиту обновляет `dstfarm update` — она независима от версии игры.

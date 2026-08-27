@@ -13,6 +13,9 @@ internal static class Program
         var console = AnsiConsole.Console;
         var config = FarmConfig.Load();
 
+        if (Environment.ProcessPath is { } processPath)
+            SelfUpdater.CleanupBackup(processPath);
+
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {
@@ -34,6 +37,7 @@ internal static class Program
                 "supervise" => await SuperviseAsync(console, config, cts.Token).ConfigureAwait(false),
                 "stop" => await StopAsync(console, config, cts.Token).ConfigureAwait(false),
                 "status" => Status(console, config),
+                "update" => await UpdateAsync(console, config, args, cts.Token).ConfigureAwait(false),
                 "config" => ShowConfig(console, config, args),
                 "--help" or "-h" or "help" => Help(console),
                 _ => Unknown(console, command),
@@ -242,6 +246,72 @@ internal static class Program
         return running ? 0 : 1;
     }
 
+    private static async Task<int> UpdateAsync(IAnsiConsole console, FarmConfig config, string[] args, CancellationToken cancellationToken)
+    {
+        var checkOnly = args.Contains("--check", StringComparer.OrdinalIgnoreCase);
+        var force = args.Contains("--force", StringComparer.OrdinalIgnoreCase);
+        var updater = new SelfUpdater();
+        var current = SelfUpdater.CurrentVersion;
+
+        console.MarkupLineInterpolated($"текущая версия: [cyan]{current.ToString(3)}[/]");
+
+        var release = await updater.FetchLatestAsync(cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("не нашёл релиз с файлом dstfarm.exe");
+
+        console.MarkupLineInterpolated($"последний релиз: [cyan]{release.Tag}[/]");
+
+        if (release.Version <= current && !force)
+        {
+            console.MarkupLine("[green]обновление не требуется[/]");
+            return 0;
+        }
+
+        if (checkOnly)
+        {
+            console.MarkupLineInterpolated($"[yellow]доступно обновление[/] {release.Version.ToString(3)}: dstfarm update");
+            return 0;
+        }
+
+        if (Environment.ProcessPath is not { } exePath)
+            throw new InvalidOperationException("не удалось определить путь к dstfarm.exe");
+
+        if (new SupervisorControl(config).IsRunning)
+            console.MarkupLine("[yellow]сервер запущен: новая версия начнёт работать после dstfarm stop и следующего запуска[/]");
+
+        if (release.Sha256 is null)
+            console.MarkupLine("[yellow]в описании релиза нет SHA-256, проверка контрольной суммы пропущена[/]");
+
+        string downloaded;
+        if (Dashboard.IsInteractiveConsole)
+        {
+            downloaded = string.Empty;
+            await console.Progress()
+                .AutoClear(false)
+                .Columns(new TaskDescriptionColumn(), new ProgressBarColumn(), new PercentageColumn(), new RemainingTimeColumn())
+                .StartAsync(async context =>
+                {
+                    var task = context.AddTask("загрузка обновления", maxValue: 100);
+                    var progress = new Progress<SteamProgress>(report =>
+                    {
+                        task.Description = Markup.Escape(Describe(report));
+                        task.Value = Math.Clamp(report.Percent, 0, 100);
+                    });
+                    downloaded = await updater.DownloadAsync(release, progress, cancellationToken).ConfigureAwait(false);
+                    task.Value = 100;
+                }).ConfigureAwait(false);
+        }
+        else
+        {
+            var reporter = new ThrottledProgressReporter(line => console.WriteLine(line));
+            downloaded = await updater.DownloadAsync(release, reporter, cancellationToken).ConfigureAwait(false);
+        }
+
+        SelfUpdater.Apply(downloaded, exePath);
+        console.MarkupLineInterpolated($"[green]обновлено до {release.Version.ToString(3)}[/]: {exePath}");
+        console.MarkupLine("[grey]старая версия останется рядом как .old и удалится при следующем запуске[/]");
+        return 0;
+    }
+
     private static int ShowConfig(IAnsiConsole console, FarmConfig config, string[] args)
     {
         var setIndex = Array.FindIndex(args, a => a.Equals("--set", StringComparison.OrdinalIgnoreCase));
@@ -305,6 +375,7 @@ internal static class Program
         console.MarkupLine("  [cyan]dstfarm start[/] [grey][[--detach]][/]  поднять сервер и держать живым");
         console.MarkupLine("  [cyan]dstfarm stop[/]               штатная остановка с сохранением мира");
         console.MarkupLine("  [cyan]dstfarm status[/]             состояние и накопленный аптайм");
+        console.MarkupLine("  [cyan]dstfarm update[/] [grey][[--check]][/]   обновить себя из релиза на GitHub");
         console.MarkupLine("  [cyan]dstfarm config[/] [grey][[--set KEY=VALUE ...]][/]");
         return 0;
     }

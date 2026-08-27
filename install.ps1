@@ -69,9 +69,10 @@ try {
     $temp = Join-Path ([IO.Path]::GetTempPath()) ("dstfarm-" + [Guid]::NewGuid().ToString('N').Substring(0, 8) + ".exe")
     Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $temp -Headers @{ 'User-Agent' = 'dstfarm-installer' }
 
-    # The release notes carry a line like: SHA-256 dstfarm.exe: <64 hex>
+    # The release notes carry a line like: SHA-256 `dstfarm.exe`: `<64 hex>`
+    # The lazy span matters: the file name itself contains hex letters (d, f, a, e).
     $expected = $null
-    $hashPattern = 'SHA-256[^0-9a-fA-F]{0,40}([0-9a-fA-F]{64})'
+    $hashPattern = 'SHA-256[\s\S]{0,80}?([0-9a-fA-F]{64})'
     if ($release.body -match $hashPattern) {
         $expected = $Matches[1].ToLowerInvariant()
     }

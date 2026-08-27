@@ -223,6 +223,11 @@ internal static class Program
         table.AddRow("кластер", $"{config.Cluster}  ({config.ClusterPath})");
         table.AddRow("сервер", File.Exists(config.ServerExe) ? "установлен" : "[red]не установлен[/]");
         table.AddRow("cluster_token", config.HasClusterToken() ? "есть" : "[red]нет[/]");
+        table.AddRow(
+            "настройки",
+            ClusterWriter.MatchesDisk(config)
+                ? "применены к кластеру"
+                : "[yellow]не применены — dstfarm init --force[/]");
         table.AddRow("состояние", running ? "[green]работает[/]" : "остановлен");
         table.AddRow("суммарный аптайм", string.Create(CultureInfo.InvariantCulture, $"{uptime.Total.TotalHours:F1} ч за {uptime.Sessions} сессий"));
 

@@ -24,6 +24,9 @@ internal sealed class Dashboard
     private bool clusterDirty;
     private string? editingBuffer;
     private string message = string.Empty;
+    private DateTimeOffset messageAt = DateTimeOffset.MinValue;
+    private bool clusterMatches = true;
+    private DateTimeOffset clusterCheckedAt = DateTimeOffset.MinValue;
     private bool busy;
     private SteamProgress? download;
 
@@ -59,6 +62,32 @@ internal sealed class Dashboard
         SettingItem.Number("Плановый рестарт, час (-1 выкл)", -1, 23, 1, () => config.DailyRestartHour, v => config.DailyRestartHour = v),
         SettingItem.Text("Cluster token", () => config.ClusterToken, ApplyToken, masked: true),
     ];
+
+    /// <summary>Сообщение показывается ограниченное время: устаревшее вводит в заблуждение.</summary>
+    private string Message
+    {
+        get => DateTimeOffset.Now - messageAt < TimeSpan.FromSeconds(20) ? message : string.Empty;
+        set
+        {
+            message = value;
+            messageAt = DateTimeOffset.Now;
+        }
+    }
+
+    /// <summary>
+    /// Совпадают ли файлы кластера с настройками на экране. Проверяем не каждый кадр:
+    /// это чтение с диска.
+    /// </summary>
+    private bool ClusterInSync()
+    {
+        if (DateTimeOffset.Now - clusterCheckedAt > TimeSpan.FromSeconds(2))
+        {
+            clusterMatches = ClusterWriter.MatchesDisk(config);
+            clusterCheckedAt = DateTimeOffset.Now;
+        }
+
+        return clusterMatches;
+    }
 
     private void Change(Action apply)
     {
@@ -154,7 +183,7 @@ internal sealed class Dashboard
                 return true;
             case ConsoleKey.Escape:
                 editingBuffer = null;
-                message = "изменение отменено";
+                Message = "изменение отменено";
                 return true;
             case ConsoleKey.Backspace:
                 if (editingBuffer!.Length > 0)
@@ -189,7 +218,7 @@ internal sealed class Dashboard
                 if (settings[selected].IsEditable)
                 {
                     editingBuffer = settings[selected].ReadText?.Invoke() ?? string.Empty;
-                    message = "введите значение, Enter — применить, Esc — отмена";
+                    Message = "введите значение, Enter — применить, Esc — отмена";
                 }
                 else
                 {
@@ -211,7 +240,7 @@ internal sealed class Dashboard
                 await SelfUpdateAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case ConsoleKey.F1:
-                message = "стрелки — выбор и значение, Enter — правка, S — старт/стоп, I — установка сервера, G — применить, U — обновить dstfarm, Q — выход";
+                Message = "стрелки — выбор и значение, Enter — правка, S — старт/стоп, I — установка сервера, G — применить, U — обновить dstfarm, Q — выход";
                 break;
             case ConsoleKey.Q:
             case ConsoleKey.Escape:
@@ -228,7 +257,8 @@ internal sealed class Dashboard
         var written = ClusterWriter.Write(config, overwrite: true, line => log.Add(line));
         config.Save();
         clusterDirty = false;
-        message = $"кластер обновлён: {written.Count} файлов";
+        clusterCheckedAt = DateTimeOffset.MinValue;
+        Message = $"кластер обновлён: {written.Count} файлов";
         log.Add($"кластер записан в {config.ClusterPath}");
     }
 
@@ -236,24 +266,24 @@ internal sealed class Dashboard
     {
         if (busy)
         {
-            message = "уже идёт установка";
+            Message = "уже идёт установка";
             return;
         }
 
         busy = true;
-        message = "установка сервера, это надолго";
+        Message = "установка сервера, это надолго";
         try
         {
             var installer = new SteamCmdInstaller(config);
             var progress = new Progress<SteamProgress>(report => download = report);
             await installer.InstallServerAsync(validate: true, line => log.Add(line), progress, cancellationToken).ConfigureAwait(false);
             config.Save();
-            message = "сервер установлен";
+            Message = "сервер установлен";
         }
         catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException or IOException)
         {
             log.Add($"ошибка установки: {exception.Message}");
-            message = "установка не удалась, подробности в логе";
+            Message = "установка не удалась, подробности в логе";
         }
         finally
         {
@@ -278,38 +308,38 @@ internal sealed class Dashboard
     {
         if (busy)
         {
-            message = "дождитесь окончания текущей операции";
+            Message = "дождитесь окончания текущей операции";
             return;
         }
 
         if (supervisorTask is not null)
         {
-            message = "сначала остановите сервер клавишей S";
+            Message = "сначала остановите сервер клавишей S";
             return;
         }
 
         if (Environment.ProcessPath is not { } exePath)
         {
-            message = "не удалось определить путь к dstfarm.exe";
+            Message = "не удалось определить путь к dstfarm.exe";
             return;
         }
 
         busy = true;
-        message = "проверяю обновления";
+        Message = "проверяю обновления";
         try
         {
             var updater = new SelfUpdater();
             var release = await updater.FetchLatestAsync(cancellationToken).ConfigureAwait(false);
             if (release is null)
             {
-                message = "релиз с файлом dstfarm.exe не найден";
+                Message = "релиз с файлом dstfarm.exe не найден";
                 return;
             }
 
             var current = SelfUpdater.CurrentVersion;
             if (release.Version <= current)
             {
-                message = $"уже последняя версия ({current.ToString(3)})";
+                Message = $"уже последняя версия ({current.ToString(3)})";
                 return;
             }
 
@@ -318,13 +348,13 @@ internal sealed class Dashboard
             var file = await updater.DownloadAsync(release, progress, cancellationToken).ConfigureAwait(false);
             SelfUpdater.Apply(file, exePath);
 
-            message = $"обновлено до {release.Version.ToString(3)} — перезапустите dstfarm";
+            Message = $"обновлено до {release.Version.ToString(3)} — перезапустите dstfarm";
             log.Add($"новая версия установлена: {exePath}");
         }
         catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException or IOException)
         {
             log.Add($"обновление не удалось: {exception.Message}");
-            message = "обновление не удалось, подробности в логе";
+            Message = "обновление не удалось, подробности в логе";
         }
         finally
         {
@@ -337,9 +367,9 @@ internal sealed class Dashboard
     {
         if (supervisorTask is not null)
         {
-            message = "останавливаю сервер";
+            Message = "останавливаю сервер";
             await StopSupervisorAsync().ConfigureAwait(false);
-            message = "сервер остановлен";
+            Message = "сервер остановлен";
             return;
         }
 
@@ -348,13 +378,13 @@ internal sealed class Dashboard
 
         if (!File.Exists(config.ServerExe))
         {
-            message = "сервер не установлен: нажмите I";
+            Message = "сервер не установлен: нажмите I";
             return;
         }
 
         if (!config.HasClusterToken())
         {
-            message = "нет cluster_token.txt: заполните поле Cluster token";
+            Message = "нет cluster_token.txt: заполните поле Cluster token";
             return;
         }
 
@@ -374,7 +404,7 @@ internal sealed class Dashboard
                 log.Add($"супервизор упал: {exception.Message}");
             }
         }, CancellationToken.None);
-        message = "сервер запускается";
+        Message = "сервер запускается";
     }
 
     private async Task StopSupervisorAsync()
@@ -458,7 +488,9 @@ internal sealed class Dashboard
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
         var state = supervisorTask is not null ? "[green]сервер работает[/]" : "[grey]сервер остановлен[/]";
-        var dirty = clusterDirty ? "  [yellow]есть непринятые изменения (G)[/]" : string.Empty;
+        var dirty = clusterDirty || !ClusterInSync()
+            ? "  [yellow]настройки не применены к кластеру (G)[/]"
+            : string.Empty;
         if (download is { } report)
             return $"[bold]dstfarm {version}[/]   {RenderBar(report)}";
         return $"[bold]dstfarm {version}[/]   {state}{dirty}";
@@ -525,8 +557,8 @@ internal sealed class Dashboard
             table.AddRow(Markup.Escape(shard.Name), value);
         }
 
-        if (!string.IsNullOrEmpty(message))
-            table.AddRow(string.Empty, $"[yellow]{Markup.Escape(message)}[/]");
+        if (Message is { Length: > 0 } note)
+            table.AddRow(string.Empty, $"[yellow]{Markup.Escape(note)}[/]");
 
         return table;
     }

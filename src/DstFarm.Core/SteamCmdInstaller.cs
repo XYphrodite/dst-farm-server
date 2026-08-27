@@ -50,7 +50,7 @@ public sealed class SteamCmdInstaller(FarmConfig config)
         arguments.Add("+quit");
 
         log?.Invoke($"установка DST Dedicated Server в {config.ServerPath}");
-        log?.Invoke("первый прогон качает около 3 ГБ, это надолго");
+        log?.Invoke("первый прогон качает ~2.9 ГБ и разворачивает ~4.2 ГБ, это надолго");
 
         var exitCode = await RunSteamCmdAsync(arguments, log, cancellationToken).ConfigureAwait(false);
 

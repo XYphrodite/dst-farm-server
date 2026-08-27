@@ -365,7 +365,10 @@ internal sealed class Dashboard
             .Border(BoxBorder.Rounded)
             .Expand());
 
-        layout["log"].Update(new Panel(new Rows(log.Tail(logRows).Select(line => new Markup(Markup.Escape(line))).ToArray()))
+        var logWidth = Math.Max(20, console.Profile.Width - 6);
+        layout["log"].Update(new Panel(new Rows(log.Tail(logRows)
+                .Select(line => new Markup(Markup.Escape(Fit(line, logWidth))))
+                .ToArray()))
             .Header("[cyan] лог [/]")
             .Border(BoxBorder.Rounded)
             .Expand());
@@ -376,6 +379,17 @@ internal sealed class Dashboard
             .Expand());
 
         return layout;
+    }
+
+    /// <summary>Обрезает строку под ширину панели: перенос ломал рамку.</summary>
+    private static string Fit(string line, int width)
+    {
+        var flat = string.Create(line.Length, line, static (span, source) =>
+        {
+            for (var i = 0; i < source.Length; i++)
+                span[i] = char.IsControl(source[i]) ? ' ' : source[i];
+        });
+        return flat.Length <= width ? flat : string.Concat(flat.AsSpan(0, width - 1), "…");
     }
 
     private string HeaderMarkup()
@@ -420,12 +434,19 @@ internal sealed class Dashboard
         table.AddRow("cluster_token", config.HasClusterToken() ? "[green]есть[/]" : "[red]нет[/]");
         table.AddRow("порт", config.ServerPort.ToString(CultureInfo.InvariantCulture));
 
-        var conflicts = PortProbe.Conflicts(config);
-        table.AddRow(
-            "порты",
-            conflicts.Count == 0
-                ? "[green]свободны[/]"
-                : $"[red]занят {string.Join(", ", conflicts.Select(c => c.Port))}[/]");
+        if (supervisorTask is not null)
+        {
+            table.AddRow("порты", "[grey]слушает сервер[/]");
+        }
+        else
+        {
+            var conflicts = PortProbe.Conflicts(config);
+            table.AddRow(
+                "порты",
+                conflicts.Count == 0
+                    ? "[green]свободны[/]"
+                    : $"[red]занят {string.Join(", ", conflicts.Select(c => c.Port))}[/]");
+        }
 
         var current = supervisor?.StartedAt is { } started
             ? DateTimeOffset.Now - started
@@ -437,7 +458,7 @@ internal sealed class Dashboard
         foreach (var shard in supervisor?.Snapshot() ?? [])
         {
             var value = shard.Running
-                ? $"[green]pid {shard.ProcessId}[/]  рестартов: {shard.Restarts}"
+                ? $"[green]pid {shard.ProcessId}[/] [grey]/[/] {shard.Restarts}"
                 : "[grey]не запущен[/]";
             table.AddRow(Markup.Escape(shard.Name), value);
         }

@@ -43,8 +43,9 @@ public sealed class ClusterWriterTests
         var lua = ClusterWriter.BuildWorldGen(new FarmConfig(), caves: false);
 
         Assert.Contains("day = \"onlyday\"", lua, StringComparison.Ordinal);
-        Assert.Contains("hunger = \"none\"", lua, StringComparison.Ordinal);
-        Assert.Contains("sanity = \"none\"", lua, StringComparison.Ordinal);
+        Assert.Contains("hunger = \"nonlethal\"", lua, StringComparison.Ordinal);
+        Assert.Contains("darkness = \"nonlethal\"", lua, StringComparison.Ordinal);
+        Assert.Contains("shadowcreatures = \"never\"", lua, StringComparison.Ordinal);
         Assert.Contains("winter = \"noseason\"", lua, StringComparison.Ordinal);
         Assert.Contains("deerclops = \"never\"", lua, StringComparison.Ordinal);
         Assert.Contains("preset = \"SURVIVAL_TOGETHER\"", lua, StringComparison.Ordinal);
@@ -66,6 +67,7 @@ public sealed class ClusterWriterTests
 
         Assert.DoesNotContain("day = ", lua, StringComparison.Ordinal);
         Assert.DoesNotContain("hunger = ", lua, StringComparison.Ordinal);
+        Assert.DoesNotContain("darkness = ", lua, StringComparison.Ordinal);
         Assert.DoesNotContain("deerclops", lua, StringComparison.Ordinal);
         Assert.Contains("world_size = \"small\"", lua, StringComparison.Ordinal);
     }

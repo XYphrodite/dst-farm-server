@@ -224,13 +224,16 @@ internal static class Program
 
         foreach (var port in PortProbe.Inspect(config))
         {
-            var state = port.Busy ? "[red]занят[/]" : "свободен";
+            // Когда сервер поднят, порты занимает он сам — это не конфликт.
+            var state = port.Busy
+                ? running ? "[grey]слушает сервер[/]" : "[red]занят[/]"
+                : "свободен";
             table.AddRow($"порт {port.Port}", $"{port.Purpose} — {state}");
         }
 
         console.Write(table);
 
-        var conflicts = PortProbe.Conflicts(config);
+        var conflicts = running ? [] : PortProbe.Conflicts(config);
         if (conflicts.Count > 0)
         {
             console.MarkupLine("[yellow]Занятые порты нужно освободить или сдвинуть:[/] "

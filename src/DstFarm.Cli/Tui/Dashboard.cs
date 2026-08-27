@@ -51,6 +51,8 @@ internal sealed class Dashboard
         SettingItem.Text("Пароль", () => config.ClusterPassword, v => Change(() => config.ClusterPassword = v), masked: true),
         SettingItem.Number("Порт", 1024, 65000, 1, () => config.ServerPort, v => Change(() => config.ServerPort = v)),
         SettingItem.Number("Максимум игроков", 1, 64, 1, () => config.MaxPlayers, v => Change(() => config.MaxPlayers = v)),
+        SettingItem.Number("Steam master port", 1024, 65000, 1, () => config.MasterServerPort, v => Change(() => config.MasterServerPort = v)),
+        SettingItem.Number("Steam auth port", 1024, 65000, 1, () => config.AuthenticationPort, v => Change(() => config.AuthenticationPort = v)),
         SettingItem.Flag("Перезапуск при падении", () => config.RestartOnExit, v => config.RestartOnExit = v),
         SettingItem.Number("Пауза перед рестартом, с", 0, 600, 5, () => config.RestartDelaySeconds, v => config.RestartDelaySeconds = v),
         SettingItem.Number("Плановый рестарт, час (-1 выкл)", -1, 23, 1, () => config.DailyRestartHour, v => config.DailyRestartHour = v),
@@ -400,6 +402,13 @@ internal sealed class Dashboard
         table.AddRow("сервер", File.Exists(config.ServerExe) ? "[green]установлен[/]" : "[red]нет[/]");
         table.AddRow("cluster_token", config.HasClusterToken() ? "[green]есть[/]" : "[red]нет[/]");
         table.AddRow("порт", config.ServerPort.ToString(CultureInfo.InvariantCulture));
+
+        var conflicts = PortProbe.Conflicts(config);
+        table.AddRow(
+            "порты",
+            conflicts.Count == 0
+                ? "[green]свободны[/]"
+                : $"[red]занят {string.Join(", ", conflicts.Select(c => c.Port))}[/]");
 
         var current = supervisor?.StartedAt is { } started
             ? DateTimeOffset.Now - started

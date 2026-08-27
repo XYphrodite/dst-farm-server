@@ -143,7 +143,21 @@ internal static class Program
         table.AddRow("cluster_token", config.HasClusterToken() ? "есть" : "[red]нет[/]");
         table.AddRow("состояние", running ? "[green]работает[/]" : "остановлен");
         table.AddRow("суммарный аптайм", string.Create(CultureInfo.InvariantCulture, $"{uptime.Total.TotalHours:F1} ч за {uptime.Sessions} сессий"));
+
+        foreach (var port in PortProbe.Inspect(config))
+        {
+            var state = port.Busy ? "[red]занят[/]" : "свободен";
+            table.AddRow($"порт {port.Port}", $"{port.Purpose} — {state}");
+        }
+
         console.Write(table);
+
+        var conflicts = PortProbe.Conflicts(config);
+        if (conflicts.Count > 0)
+        {
+            console.MarkupLine("[yellow]Занятые порты нужно освободить или сдвинуть:[/] "
+                + "dstfarm config --set MasterServerPort=27020 AuthenticationPort=8770, затем dstfarm init --force");
+        }
         return running ? 0 : 1;
     }
 

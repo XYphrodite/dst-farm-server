@@ -13,6 +13,18 @@ Account → Games → Servers → Add New Server, затем `dstfarm token <Т�
 **В логе `Your Server Will Not Start`** — почти всегда битый или чужой токен.
 Сгенерируйте новый в аккаунте Klei.
 
+## Порт занят
+
+`dstfarm status` показывает каждый порт сервера строкой «свободен» или «занят». Если сервер
+и клиент игры живут на одной машине, Steam может занять 27018 под себя. Сдвиньте порты:
+
+```
+dstfarm config --set MasterServerPort=27030 AuthenticationPort=8790
+dstfarm init --force
+```
+
+Подробнее — [same-machine.md](same-machine.md).
+
 ## Установка обрывается
 
 `steamcmd` иногда падает на самообновлении. Запустите `dstfarm install` повторно —

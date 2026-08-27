@@ -50,6 +50,9 @@ public sealed class ServerSupervisor : IDisposable
         File.Delete(StopFlagFile);
         await File.WriteAllTextAsync(PidFile, Environment.ProcessId.ToString(CultureInfo.InvariantCulture), cancellationToken).ConfigureAwait(false);
 
+        foreach (var conflict in PortProbe.Conflicts(config))
+            Log?.Invoke($"внимание: порт {conflict.Port} ({conflict.Purpose}) уже занят — сервер может не подняться");
+
         StartedAt = DateTimeOffset.Now;
         var stopwatch = Stopwatch.StartNew();
         var nextDailyRestart = NextDailyRestart();

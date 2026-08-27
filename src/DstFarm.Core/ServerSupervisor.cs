@@ -168,6 +168,11 @@ public sealed class ServerSupervisor : IDisposable
         private readonly Process process;
         private readonly StreamWriter logWriter;
         private readonly Lock writeSync = new();
+        private readonly CancellationTokenSource tailCts = new();
+        private readonly Task? tailTask;
+
+        /// <summary>Дошли ли строки из собственного лога сервера: пока нет — показываем stdout.</summary>
+        private volatile bool tailAlive;
 
         public ShardRunner(FarmConfig config, string shard, int restarts, Action<string> log)
         {
@@ -214,6 +219,22 @@ public sealed class ServerSupervisor : IDisposable
 
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
+
+            // stdout сервера уходит в pipe и потому буферизуется блоками: панель выглядит
+            // замёрзшей. Собственный лог сервер пишет сразу, его и читаем для живого вывода.
+            var shardLog = Path.Combine(config.ClusterPath, shard, "server_log.txt");
+            tailTask = Task.Run(
+                () => LogTail.FollowAsync(
+                    shardLog,
+                    line =>
+                    {
+                        tailAlive = true;
+                        log($"[{Shard}] {line}");
+                    },
+                    TimeSpan.FromMilliseconds(500),
+                    TimeSpan.FromSeconds(20),
+                    tailCts.Token),
+                CancellationToken.None);
         }
 
         public string Shard { get; }
@@ -296,11 +317,23 @@ public sealed class ServerSupervisor : IDisposable
                 return;
             lock (writeSync)
                 logWriter.WriteLine(line);
-            log($"[{Shard}] {line}");
+            if (!tailAlive)
+                log($"[{Shard}] {line}");
         }
+
 
         public void Dispose()
         {
+            tailCts.Cancel();
+            try
+            {
+                tailTask?.Wait(TimeSpan.FromSeconds(2));
+            }
+            catch (AggregateException)
+            {
+            }
+
+            tailCts.Dispose();
             logWriter.Dispose();
             process.Dispose();
         }

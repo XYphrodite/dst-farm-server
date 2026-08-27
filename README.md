@@ -26,11 +26,37 @@
 * [Если что-то пошло не так](docs/troubleshooting.md)
 * [Устройство](docs/architecture.md) — для тех, кто будет править код
 
-## Установка готовой сборки
+## Установка
 
-Возьмите `dstfarm.exe` из [релизов](../../releases) — это self-contained сборка под
-Windows x64, .NET на целевой машине не нужен. Положите в отдельную папку: рядом с exe
-появятся `config.json` и `.runtime` с сервером, логами и статистикой.
+В PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/XYphrodite/dst-farm-server/main/install.ps1 | iex
+```
+
+Скрипт скачает последний релиз, сверит SHA-256 из описания релиза, положит `dstfarm.exe`
+в `%LOCALAPPDATA%\Programs\dstfarm` и добавит каталог в PATH пользователя.
+Права администратора не нужны.
+
+Другой каталог или конкретная версия:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/XYphrodite/dst-farm-server/main/install.ps1))) -InstallDir 'D:\dstfarm' -Version v0.1.0
+```
+
+Параметры: `-InstallDir` — куда ставить, `-Version` — тег релиза (по умолчанию последний),
+`-NoPath` — не трогать PATH.
+
+Можно и вручную: взять `dstfarm.exe` из [релизов](../../releases) — это self-contained
+сборка под Windows x64, .NET на целевой машине не нужен.
+
+Рядом с exe появятся `config.json` и `.runtime` с сервером, логами и статистикой, поэтому
+ставьте туда, где есть ещё около 5 ГБ свободного места.
+
+Обновление — тот же однострочник: он просто перезапишет exe. Перед этим остановите
+сервер (`dstfarm stop`), иначе файл занят.
+
+Удаление: снести каталог установки и убрать его из PATH.
 
 ## Сборка и запуск
 

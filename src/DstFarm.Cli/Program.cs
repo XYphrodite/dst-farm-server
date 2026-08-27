@@ -67,9 +67,87 @@ internal static class Program
     {
         var validate = !args.Contains("--no-validate", StringComparer.OrdinalIgnoreCase);
         var installer = new SteamCmdInstaller(config);
-        await installer.InstallServerAsync(validate, line => console.WriteLine(line), cancellationToken).ConfigureAwait(false);
+
+        if (!Dashboard.IsInteractiveConsole)
+        {
+            // Без живой консоли рисовать бар нечем: печатаем вехи, но не каждую строку steamcmd.
+            var reporter = new ThrottledProgressReporter(line => console.WriteLine(line));
+            await installer.InstallServerAsync(validate, line => console.WriteLine(line), reporter, cancellationToken).ConfigureAwait(false);
+            config.Save();
+            return 0;
+        }
+
+        // Внутри Live-дисплея писать в консоль нельзя, поэтому лог копим и показываем только при провале.
+        var tail = new Queue<string>();
+        void Remember(string line)
+        {
+            tail.Enqueue(line);
+            while (tail.Count > 20)
+                tail.Dequeue();
+        }
+
+        try
+        {
+            await console.Progress()
+                .AutoClear(false)
+                .Columns(
+                    new TaskDescriptionColumn(),
+                    new ProgressBarColumn(),
+                    new PercentageColumn(),
+                    new RemainingTimeColumn(),
+                    new SpinnerColumn())
+                .StartAsync(async context =>
+                {
+                    var task = context.AddTask("подготовка", maxValue: 100);
+                    var progress = new Progress<SteamProgress>(report =>
+                    {
+                        task.Description = Markup.Escape(Describe(report));
+                        task.Value = Math.Clamp(report.Percent, 0, 100);
+                    });
+
+                    await installer.InstallServerAsync(validate, Remember, progress, cancellationToken).ConfigureAwait(false);
+                    task.Description = "готово";
+                    task.Value = 100;
+                }).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException)
+        {
+            foreach (var line in tail)
+                console.WriteLine(line);
+            throw;
+        }
+
         config.Save();
+        console.MarkupLineInterpolated($"сервер установлен: [cyan]{config.ServerExe}[/]");
         return 0;
+    }
+
+    private static string Describe(SteamProgress report)
+    {
+        var state = string.IsNullOrWhiteSpace(report.State) ? "загрузка" : report.State;
+        return report.HasTotal
+            ? $"{state}  {SteamProgress.Format(report.BytesDone)} / {SteamProgress.Format(report.BytesTotal)}"
+            : state;
+    }
+
+    /// <summary>Печатает прогресс не чаще раза в 3 секунды и на каждых 5 процентах.</summary>
+    private sealed class ThrottledProgressReporter(Action<string> write) : IProgress<SteamProgress>
+    {
+        private readonly Action<string> write = write;
+        private DateTimeOffset last = DateTimeOffset.MinValue;
+        private int lastBucket = -1;
+
+        public void Report(SteamProgress value)
+        {
+            var bucket = (int)(value.Percent / 5);
+            var now = DateTimeOffset.Now;
+            if (bucket == lastBucket && now - last < TimeSpan.FromSeconds(3))
+                return;
+
+            lastBucket = bucket;
+            last = now;
+            write($"{Describe(value)}  —  {value.Percent.ToString("F1", CultureInfo.InvariantCulture)}%");
+        }
     }
 
     private static int Init(IAnsiConsole console, FarmConfig config, string[] args)

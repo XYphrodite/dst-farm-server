@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DstFarm.Cli/DstFarm.Cli.csproj" />
+    <Project Path="src/DstFarm.Core/DstFarm.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DstFarm.Core.Tests/DstFarm.Core.Tests.csproj" />
+  </Folder>
+</Solution>

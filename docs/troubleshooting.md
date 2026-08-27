@@ -1,93 +1,95 @@
-# Если что-то пошло не так
+# Troubleshooting
 
-Первым делом смотрите логи шардов: `.runtime\logs\master.log` (и `caves.log`, если пещеры
-включены). Там полный вывод сервера, а не только то, что попало в панель.
+Русская версия: [ru/troubleshooting.md](ru/troubleshooting.md).
 
-## Сервер не стартует
+Start with the shard logs: `.runtime\logs\master.log` (and `caves.log` if caves are enabled).
+They hold the full server output, not just what fit in the panel.
 
-**«нет cluster_token.txt»** — токен не записан или короче 20 символов. Возьмите его в игре:
-Account → Games → Servers → Add New Server, затем `dstfarm token <ТОКЕН>`.
+## The server does not start
 
-**«сервер не установлен»** — не выполнена установка. `dstfarm install` или клавиша `I`.
+**"cluster_token.txt is missing"** — the token is absent or shorter than 20 characters. Get it
+from the game: Account → Games → Servers → Add New Server, then `dstfarm token <TOKEN>`.
 
-**В логе `Your Server Will Not Start`** — почти всегда битый или чужой токен.
-Сгенерируйте новый в аккаунте Klei.
+**"the server is not installed"** — the install step never ran. `dstfarm install` or the `I` key.
 
-## Порт занят
+**`Your Server Will Not Start` in the log** — almost always a broken or foreign token.
+Generate a new one in your Klei account.
 
-`dstfarm status` показывает каждый порт сервера строкой «свободен» или «занят». Если сервер
-и клиент игры живут на одной машине, Steam может занять 27018 под себя. Сдвиньте порты:
+## A port is in use
+
+`dstfarm status` shows every server port as free or in use. When the server and the game
+client share a machine, Steam may take 27018 for itself. Move the ports:
 
 ```
 dstfarm config --set MasterServerPort=27030 AuthenticationPort=8790
 dstfarm init --force
 ```
 
-Подробнее — [same-machine.md](same-machine.md).
+Details in [same-machine.md](same-machine.md).
 
-## Установка обрывается
+## The install breaks off
 
-На чистой машине первый запуск steamcmd уходит на его собственное обновление: он выходит
-с кодом 7, не выполнив установку. `dstfarm` распознаёт это и повторяет запуск сам, до трёх
-раз, — в логе видно «steamcmd обновил сам себя, повторяю установку».
+On a clean machine the first steamcmd run goes into updating itself: it exits with code 7
+without installing anything. dstfarm recognises that and retries on its own, up to three
+times — the log says "steamcmd updated itself, retrying the install".
 
-Если установка всё-таки оборвалась, запустите `dstfarm install` повторно: докачка
-продолжится с места обрыва. Когда ошибка повторяется, удалите `.runtime\steamcmd`
-и попробуйте снова.
+If the install still broke off, run `dstfarm install` again: the download resumes where it
+stopped. When the error repeats, delete `.runtime\steamcmd` and try once more.
 
-Антивирус и SmartScreen могут блокировать `steamcmd.exe` — проверьте карантин.
+Antivirus software and SmartScreen sometimes block `steamcmd.exe` — check the quarantine.
 
-## Сервер запустился, но его не видно
+## The server started but nobody can see it
 
-* Проверьте, что клиент и сервер одной версии. Обновите: `dstfarm install`.
-* Свой ПК: ищите на вкладке **LAN**.
-* Другим людям через интернет: пробросьте на роутере UDP `10999` и `27018`
-  (для пещер ещё `11000` и `27019`), в брандмауэре Windows разрешите
-  `dontstarve_dedicated_server_nullrenderer_x64.exe`.
-* Пароль в `cluster.ini` скрывает сервер от тех, кто его не знает, но из списка не убирает.
+* Make sure the client and the server are on the same version. Update with `dstfarm install`.
+* On your own PC: look at the **LAN** tab.
+* For other people over the internet: forward UDP `10999` and `27018` on the router
+  (plus `11000` and `27019` for caves), and allow
+  `dontstarve_dedicated_server_nullrenderer_x64.exe` through the Windows firewall.
+* A password in `cluster.ini` hides the server from people who do not know it, but does not
+  remove it from the list.
 
-## Лог в панели замирает
+## No drops
 
-До версии 0.1.6 панель показывала перехваченный stdout сервера. Windows буферизует его
-блоками, когда вывод уходит в pipe, поэтому строки останавливались примерно на
-`[00:00:05]: [200] Account Communication Success` — сервер при этом работал нормально.
+Check in order:
 
-Начиная с 0.1.6 панель читает собственный лог сервера, который тот пишет сразу:
-`Documents\Klei\DoNotStarveTogether\<кластер>\Master\server_log.txt`. Полный вывод
-по-прежнему дублируется в `.runtime\logs\master.log`.
+1. The client is really in the game, not in the main menu. Time in the world is what counts.
+2. `cluster.ini` says `offline_cluster = false` (dstfarm always writes it that way).
+3. The weekly Klei cap is not reached. Uptime beyond the cap gives nothing.
 
-Если панель всё-таки молчит, смотрите оба файла напрямую — сервер пишет `server_log.txt`
-независимо от нас.
+More in [farming.md](farming.md).
 
-## Дропы не капают
+## The character keeps dying
 
-Проверьте по порядку:
+World settings apply at **generation** time. If the world was already created with the old
+parameters, some overrides will not take effect. Press `G` (or run `dstfarm init --force`),
+then delete the `save` folder inside the shard — the world is recreated and the progress is lost.
 
-1. Клиент реально в игре, а не в главном меню. Считается время в мире.
-2. В `cluster.ini` стоит `offline_cluster = false` (утилита всегда пишет так).
-3. Недельный лимит Klei не выбран. Аптайм сверх лимита ничего не даёт.
+## The log panel freezes
 
-Подробнее — [farming.md](farming.md).
+Before 0.1.6 the panel showed the server's captured stdout. Windows buffers it in blocks when
+the output goes into a pipe, so the lines stopped at roughly
+`[00:00:05]: [200] Account Communication Success` while the server was running fine.
 
-## Персонаж всё равно умирает
+Since 0.1.6 the panel reads the server's own log, which it writes immediately:
+`Documents\Klei\DoNotStarveTogether\<cluster>\Master\server_log.txt`. The full output is still
+mirrored into `.runtime\logs\master.log`.
 
-Настройки мира применяются при **генерации**. Если мир уже создан со старыми параметрами,
-часть оверрайдов не подействует. Нажмите `G` (или `dstfarm init --force`), затем удалите
-папку `save` внутри шарда — мир создастся заново, прогресс при этом теряется.
+If the panel is still silent, read both files directly — the server writes `server_log.txt`
+regardless of us.
 
-## Полноэкранный режим не открывается
+## The full-screen mode does not open
 
-Сообщение «полноэкранный режим требует настоящего терминала» означает, что ввод или вывод
-перенаправлены — так бывает при запуске из пайпа, скрипта или CI. Запустите `dstfarm`
-напрямую в консоли или пользуйтесь командами.
+The message "the full-screen mode needs a real terminal" means input or output is redirected —
+which happens when running from a pipe, a script or CI. Run `dstfarm` directly in a console
+or use the commands.
 
-## Мир откатился после перезапуска
+## The world rolled back after a restart
 
-Сервер сохраняется автосейвом и при штатном `c_shutdown(true)`. Если процесс убили через
-диспетчер задач, теряется всё с последнего автосейва. Останавливайте через `S` или
+The server saves on autosave and on a graceful `c_shutdown(true)`. If the process was killed
+through Task Manager, everything since the last autosave is lost. Stop it with `S` or
 `dstfarm stop`.
 
-## Как всё снести
+## Removing everything
 
-Удалите папку `.runtime` (сервер, steamcmd, логи, статистика) и папку кластера в
-`Documents\Klei\DoNotStarveTogether`. Настройки живут в `config.json` рядом с exe.
+Delete the `.runtime` folder (server, steamcmd, logs, statistics) and the cluster folder under
+`Documents\Klei\DoNotStarveTogether`. Settings live in `config.json` next to the exe.

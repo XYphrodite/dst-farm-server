@@ -20,6 +20,9 @@ public sealed class FarmConfig
     public string SteamCmdDirectory { get; set; } = string.Empty;
     public string ConfDirectory { get; set; } = string.Empty;
 
+    /// <summary>auto, ru или en. auto — по языку системы.</summary>
+    public string Language { get; set; } = Loc.Auto;
+
     public string Cluster { get; set; } = "FarmCluster";
     public string ClusterName { get; set; } = "Farm Idle Server";
     public string ClusterPassword { get; set; } = string.Empty;

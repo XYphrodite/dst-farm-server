@@ -1,71 +1,79 @@
-# Настройки
+# Settings
 
-Всё хранится в `config.json` рядом с exe. Менять можно тремя способами: в полноэкранном
-интерфейсе, командой `dstfarm config --set KEY=VALUE`, или руками в файле.
+Русская версия: [ru/settings.md](ru/settings.md).
 
-После изменения настроек мира нужно применить их к файлам кластера: клавиша `G`
-в интерфейсе или `dstfarm init --force`. Пока этого не сделано, значения на экране
-расходятся с теми, по которым реально работает сервер, — интерфейс пишет об этом
-в шапке, а `dstfarm status` строкой «настройки: не применены».
+Everything lives in `config.json` next to the exe. Three ways to change it: the full-screen
+interface, `dstfarm config --set KEY=VALUE`, or editing the file by hand.
 
-Перезапуск сервера тоже нужен: он читает конфиги при старте.
+World settings must then be applied to the cluster files: the `G` key in the interface or
+`dstfarm init --force`. Until that happens the values on screen differ from the ones the
+server actually runs with — the interface says so in its header, and `dstfarm status` adds a
+`settings: not applied` row.
 
-> Уже сгенерированный мир перегенерации не подлежит: часть оверрайдов действует только
-> при создании мира. Чтобы новые настройки генерации точно вступили в силу, удалите
-> папку `save` внутри шарда — это сотрёт прогресс.
+The server also has to be restarted: it reads the configs at startup.
 
-## Профиль фарма
+> An already generated world cannot be regenerated: some overrides only apply at creation
+> time. To be sure new worldgen settings take effect, delete the `save` folder inside the
+> shard — that wipes the progress.
 
-| Ключ | По умолчанию | Что делает |
+## Farm profile
+
+| Key | Default | What it does |
 | --- | --- | --- |
-| `OnlyDay` | `true` | `day = "onlyday"` — вечный день, Чарли в темноте не тронет |
-| `EternalAutumn` | `true` | вечная осень: `autumn = "verylongseason"`, остальные сезоны `noseason` |
-| `NoHunger` | `true` | `hunger = "none"` — персонаж не голодает |
-| `NoSanityDrain` | `true` | `sanity = "none"` — рассудок не падает |
-| `DisableThreats` | `true` | гончие, охота, все рейдовые боссы, молнии, землетрясения, пожары — `never` |
-| `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Меньше мир — меньше CPU |
-| `GameMode` | `endless` | `endless` не завершает мир при смерти. Ещё есть `survival`, `wilderness` |
-| `EnableCaves` | `false` | второй шард. Удваивает нагрузку, для аптайма не нужен |
+| `OnlyDay` | `true` | `day = "onlyday"` — eternal day, Charlie never touches an idle character |
+| `EternalAutumn` | `true` | eternal autumn: `autumn = "verylongseason"`, other seasons `noseason` |
+| `NoHunger` | `true` | `hunger = "none"` — the character does not starve |
+| `NoSanityDrain` | `true` | `sanity = "none"` — sanity does not drop |
+| `DisableThreats` | `true` | hounds, hunts, every raid boss, lightning, earthquakes, wildfires set to `never` |
+| `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Smaller world, less CPU |
+| `GameMode` | `endless` | `endless` does not end the world on death. `survival` and `wilderness` also exist |
+| `EnableCaves` | `false` | second shard. Doubles the load and is useless for uptime |
 
-## Сервер
+## Server
 
-| Ключ | По умолчанию | Что делает |
+| Key | Default | What it does |
 | --- | --- | --- |
-| `Cluster` | `FarmCluster` | имя папки кластера в `Documents\Klei\DoNotStarveTogether` |
-| `ClusterName` | `Farm Idle Server` | имя в списке серверов |
-| `ClusterPassword` | пусто | пароль на вход |
-| `ClusterToken` | пусто | токен Klei, дублируется в `cluster_token.txt` |
-| `ServerPort` | `10999` | UDP-порт мира. Пещеры занимают `ServerPort + 1` |
-| `MaxPlayers` | `6` | лимит игроков |
-| `MasterServerPort` | `27018` | steam master port. Пещеры занимают `+1` |
-| `AuthenticationPort` | `8768` | steam auth port. Пещеры занимают `+1` |
+| `Cluster` | `FarmCluster` | cluster folder name under `Documents\Klei\DoNotStarveTogether` |
+| `ClusterName` | `Farm Idle Server` | name in the server list |
+| `ClusterPassword` | empty | join password |
+| `ClusterToken` | empty | Klei token, mirrored into `cluster_token.txt` |
+| `ServerPort` | `10999` | UDP world port. Caves take `ServerPort + 1` |
+| `MaxPlayers` | `6` | player limit |
+| `MasterServerPort` | `27018` | steam master port. Caves take `+1` |
+| `AuthenticationPort` | `8768` | steam auth port. Caves take `+1` |
 
-Steam-порты вынесены в настройки не просто так: клиент Steam на той же машине занимает
-часть диапазона 27015-27050, и сервер тогда не поднимается. Проверить занятость —
-`dstfarm status`, подробности — [same-machine.md](same-machine.md).
+The steam ports are configurable for a reason: the Steam client on the same machine occupies
+part of the 27015-27050 range, and the server then fails to start. Check with
+`dstfarm status`; details in [same-machine.md](same-machine.md).
 
-## Супервизор
+## Supervisor
 
-| Ключ | По умолчанию | Что делает |
+| Key | Default | What it does |
 | --- | --- | --- |
-| `RestartOnExit` | `true` | поднимать шард заново, если процесс упал |
-| `RestartDelaySeconds` | `10` | пауза перед перезапуском |
-| `DailyRestartHour` | `-1` | плановый перезапуск в указанный час, `-1` — выключено |
-| `ExtraArguments` | пусто | дополнительные аргументы командной строки сервера |
+| `RestartOnExit` | `true` | bring a shard back up if the process died |
+| `RestartDelaySeconds` | `10` | pause before restarting |
+| `DailyRestartHour` | `-1` | scheduled restart at the given hour, `-1` disables it |
+| `ExtraArguments` | empty | extra command line arguments for the server |
 
-## Пути
+## Interface
 
-| Ключ | По умолчанию | Что делает |
+| Key | Default | What it does |
 | --- | --- | --- |
-| `Root` | `.runtime` рядом с exe | корень для steamcmd, сервера, логов и состояния |
-| `ServerDirectory` | `<Root>\server` | куда steamcmd ставит сервер |
-| `SteamCmdDirectory` | `<Root>\steamcmd` | куда кладётся steamcmd |
-| `ConfDirectory` | `Documents\Klei\DoNotStarveTogether` | каталог кластеров |
+| `Language` | `auto` | `auto`, `ru` or `en`. `auto` follows the system language |
 
-Если `ConfDirectory` оставлен пустым, серверу не передаются `-persistent_storage_root`
-и `-conf_dir` — он сам находит стандартный путь. Задавайте его только осознанно.
+## Paths
 
-## Что поменять нельзя
+| Key | Default | What it does |
+| --- | --- | --- |
+| `Root` | `.runtime` next to the exe | root for steamcmd, the server, logs and state |
+| `ServerDirectory` | `<Root>\server` | where steamcmd installs the server |
+| `SteamCmdDirectory` | `<Root>\steamcmd` | where steamcmd is unpacked |
+| `ConfDirectory` | `Documents\Klei\DoNotStarveTogether` | cluster directory |
 
-`offline_cluster` всегда `false`: офлайн-мир не засчитывается в игровое время, и дропы
-Klei за него не начисляются. Ради этого инструмент и существует.
+When `ConfDirectory` is left empty, the server is not given `-persistent_storage_root` and
+`-conf_dir` — it finds the standard path itself. Set it only deliberately.
+
+## What cannot be changed
+
+`offline_cluster` is always `false`: an offline world does not count as play time and earns no
+Klei drops. That is the whole point of this tool.

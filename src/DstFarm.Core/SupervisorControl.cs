@@ -37,27 +37,27 @@ public sealed class SupervisorControl(FarmConfig config)
         var pid = RunningProcessId();
         if (pid is null)
         {
-            log?.Invoke("супервизор не запущен");
+            log?.Invoke(Loc.T("супервизор не запущен", "supervisor is not running"));
             return false;
         }
 
         Directory.CreateDirectory(config.StatePath);
         await File.WriteAllTextAsync(StopFlagFile, string.Empty, cancellationToken).ConfigureAwait(false);
-        log?.Invoke($"жду завершения (pid={pid}), сервер сохраняет мир");
+        log?.Invoke(Loc.T($"жду завершения (pid={pid}), сервер сохраняет мир", $"waiting for exit (pid={pid}), the server is saving the world"));
 
         var deadline = DateTimeOffset.Now + timeout;
         while (DateTimeOffset.Now < deadline)
         {
             if (RunningProcessId() is null)
             {
-                log?.Invoke("остановлен");
+                log?.Invoke(Loc.T("остановлен", "stopped"));
                 return true;
             }
 
             await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
         }
 
-        log?.Invoke("не дождался, снимаю принудительно");
+        log?.Invoke(Loc.T("не дождался, снимаю принудительно", "timed out, killing the process"));
         try
         {
             using var process = Process.GetProcessById(pid.Value);
@@ -83,7 +83,7 @@ public sealed class SupervisorControl(FarmConfig config)
         startInfo.ArgumentList.Add("supervise");
 
         var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("не удалось запустить супервизор");
+            ?? throw new InvalidOperationException(Loc.T("не удалось запустить супервизор", "could not start the supervisor"));
         return process.Id;
     }
 }

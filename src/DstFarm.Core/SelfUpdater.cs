@@ -106,7 +106,7 @@ public sealed partial class SelfUpdater(string repository = SelfUpdater.DefaultR
                 await target.WriteAsync(buffer.AsMemory(0, read), cancellationToken).ConfigureAwait(false);
                 copied += read;
                 progress?.Report(new SteamProgress(
-                    "загрузка обновления",
+                    Loc.T("загрузка обновления", "downloading update"),
                     total > 0 ? copied * 100.0 / total : 0,
                     copied,
                     total));
@@ -120,7 +120,7 @@ public sealed partial class SelfUpdater(string repository = SelfUpdater.DefaultR
             {
                 File.Delete(temp);
                 throw new InvalidOperationException(
-                    string.Create(CultureInfo.InvariantCulture, $"SHA-256 не совпал: ожидалось {expected}, получено {actual}"));
+                    Loc.T($"SHA-256 не совпал: ожидалось {expected}, получено {actual}", $"SHA-256 mismatch: expected {expected}, got {actual}"));
             }
         }
 

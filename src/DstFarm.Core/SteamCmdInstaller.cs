@@ -18,7 +18,7 @@ public sealed class SteamCmdInstaller(FarmConfig config)
 
         Directory.CreateDirectory(config.SteamCmdPath);
         var archive = Path.Combine(config.SteamCmdPath, "steamcmd.zip");
-        log?.Invoke($"качаю steamcmd -> {archive}");
+        log?.Invoke(Loc.T($"качаю steamcmd -> {archive}", $"downloading steamcmd -> {archive}"));
 
         using (var client = new HttpClient { Timeout = TimeSpan.FromMinutes(5) })
         using (var response = await client.GetAsync(FarmConfig.SteamCmdUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false))
@@ -35,7 +35,7 @@ public sealed class SteamCmdInstaller(FarmConfig config)
         File.Delete(archive);
 
         if (!File.Exists(config.SteamCmdExe))
-            throw new InvalidOperationException($"steamcmd.exe не появился в {config.SteamCmdPath}");
+            throw new InvalidOperationException(Loc.T($"steamcmd.exe не появился в {config.SteamCmdPath}", $"steamcmd.exe did not appear in {config.SteamCmdPath}"));
 
         return config.SteamCmdExe;
     }
@@ -55,8 +55,8 @@ public sealed class SteamCmdInstaller(FarmConfig config)
             arguments.Add("validate");
         arguments.Add("+quit");
 
-        log?.Invoke($"установка DST Dedicated Server в {config.ServerPath}");
-        log?.Invoke("первый прогон качает ~2.9 ГБ и разворачивает ~4.2 ГБ, это надолго");
+        log?.Invoke(Loc.T($"установка DST Dedicated Server в {config.ServerPath}", $"installing the DST dedicated server into {config.ServerPath}"));
+        log?.Invoke(Loc.T("первый прогон качает ~2.9 ГБ и разворачивает ~4.2 ГБ, это надолго", "the first run downloads ~2.9 GB and unpacks ~4.2 GB, this takes a while"));
 
         // На чистой машине первый запуск уходит на самообновление steamcmd: он выходит
         // с кодом 7, не выполнив app_update. Поэтому пробуем несколько раз.
@@ -71,14 +71,14 @@ public sealed class SteamCmdInstaller(FarmConfig config)
                 break;
 
             if (attempt < MaxInstallAttempts)
-                log?.Invoke($"steamcmd обновил сам себя (код {exitCode}), повторяю установку — попытка {attempt + 1}");
+                log?.Invoke(Loc.T($"steamcmd обновил сам себя (код {exitCode}), повторяю установку — попытка {attempt + 1}", $"steamcmd updated itself (exit {exitCode}), retrying the install — attempt {attempt + 1}"));
         }
 
         if (!File.Exists(config.ServerExe))
             throw new InvalidOperationException(
-                string.Create(CultureInfo.InvariantCulture, $"steamcmd вернул {exitCode}, сервер не установлен: {config.ServerExe}"));
+                Loc.T($"steamcmd вернул {exitCode}, сервер не установлен: {config.ServerExe}", $"steamcmd returned {exitCode}, the server was not installed: {config.ServerExe}"));
 
-        log?.Invoke($"готово: {config.ServerExe}");
+        log?.Invoke(Loc.T($"готово: {config.ServerExe}", $"done: {config.ServerExe}"));
         return config.ServerExe;
     }
 
@@ -123,7 +123,7 @@ public sealed class SteamCmdInstaller(FarmConfig config)
         process.ErrorDataReceived += (_, e) => Handle(e.Data, log, progress);
 
         if (!process.Start())
-            throw new InvalidOperationException("не удалось запустить steamcmd");
+            throw new InvalidOperationException(Loc.T("не удалось запустить steamcmd", "could not start steamcmd"));
 
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();

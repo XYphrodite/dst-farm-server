@@ -14,11 +14,12 @@ internal sealed class Dashboard
 
     private static readonly string[] WorldSizes = ["small", "medium", "default", "large", "huge"];
     private static readonly string[] GameModes = ["endless", "survival", "wilderness"];
+    private static readonly string[] Languages = [Loc.Auto, "ru", "en"];
 
     private readonly IAnsiConsole console;
     private readonly FarmConfig config;
     private readonly LogBuffer log = new();
-    private readonly List<SettingItem> settings;
+    private List<SettingItem> settings;
 
     private int selected;
     private bool clusterDirty;
@@ -43,24 +44,35 @@ internal sealed class Dashboard
 
     private List<SettingItem> BuildSettings() =>
     [
-        SettingItem.Flag("Вечный день", () => config.OnlyDay, v => Change(() => config.OnlyDay = v)),
-        SettingItem.Flag("Вечная осень", () => config.EternalAutumn, v => Change(() => config.EternalAutumn = v)),
-        SettingItem.Flag("Без голода", () => config.NoHunger, v => Change(() => config.NoHunger = v)),
-        SettingItem.Flag("Без потери рассудка", () => config.NoSanityDrain, v => Change(() => config.NoSanityDrain = v)),
-        SettingItem.Flag("Без боссов и угроз", () => config.DisableThreats, v => Change(() => config.DisableThreats = v)),
-        SettingItem.Choice("Размер мира", WorldSizes, () => config.WorldSize, v => Change(() => config.WorldSize = v)),
-        SettingItem.Choice("Режим", GameModes, () => config.GameMode, v => Change(() => config.GameMode = v)),
-        SettingItem.Flag("Пещеры (второй шард)", () => config.EnableCaves, v => Change(() => config.EnableCaves = v)),
-        SettingItem.Text("Имя сервера", () => config.ClusterName, v => Change(() => config.ClusterName = v)),
-        SettingItem.Text("Пароль", () => config.ClusterPassword, v => Change(() => config.ClusterPassword = v), masked: true),
-        SettingItem.Number("Порт", 1024, 65000, 1, () => config.ServerPort, v => Change(() => config.ServerPort = v)),
-        SettingItem.Number("Максимум игроков", 1, 64, 1, () => config.MaxPlayers, v => Change(() => config.MaxPlayers = v)),
+        SettingItem.Flag(Loc.T("Вечный день", "Eternal day"), () => config.OnlyDay, v => Change(() => config.OnlyDay = v)),
+        SettingItem.Flag(Loc.T("Вечная осень", "Eternal autumn"), () => config.EternalAutumn, v => Change(() => config.EternalAutumn = v)),
+        SettingItem.Flag(Loc.T("Без голода", "No hunger"), () => config.NoHunger, v => Change(() => config.NoHunger = v)),
+        SettingItem.Flag(Loc.T("Без потери рассудка", "No sanity drain"), () => config.NoSanityDrain, v => Change(() => config.NoSanityDrain = v)),
+        SettingItem.Flag(Loc.T("Без боссов и угроз", "No bosses or threats"), () => config.DisableThreats, v => Change(() => config.DisableThreats = v)),
+        SettingItem.Choice(Loc.T("Размер мира", "World size"), WorldSizes, () => config.WorldSize, v => Change(() => config.WorldSize = v)),
+        SettingItem.Choice(Loc.T("Режим", "Game mode"), GameModes, () => config.GameMode, v => Change(() => config.GameMode = v)),
+        SettingItem.Flag(Loc.T("Пещеры (второй шард)", "Caves (second shard)"), () => config.EnableCaves, v => Change(() => config.EnableCaves = v)),
+        SettingItem.Text(Loc.T("Имя сервера", "Server name"), () => config.ClusterName, v => Change(() => config.ClusterName = v)),
+        SettingItem.Text(Loc.T("Пароль", "Password"), () => config.ClusterPassword, v => Change(() => config.ClusterPassword = v), masked: true),
+        SettingItem.Number(Loc.T("Порт", "Port"), 1024, 65000, 1, () => config.ServerPort, v => Change(() => config.ServerPort = v)),
+        SettingItem.Number(Loc.T("Максимум игроков", "Max players"), 1, 64, 1, () => config.MaxPlayers, v => Change(() => config.MaxPlayers = v)),
         SettingItem.Number("Steam master port", 1024, 65000, 1, () => config.MasterServerPort, v => Change(() => config.MasterServerPort = v)),
         SettingItem.Number("Steam auth port", 1024, 65000, 1, () => config.AuthenticationPort, v => Change(() => config.AuthenticationPort = v)),
-        SettingItem.Flag("Перезапуск при падении", () => config.RestartOnExit, v => config.RestartOnExit = v),
-        SettingItem.Number("Пауза перед рестартом, с", 0, 600, 5, () => config.RestartDelaySeconds, v => config.RestartDelaySeconds = v),
-        SettingItem.Number("Плановый рестарт, час (-1 выкл)", -1, 23, 1, () => config.DailyRestartHour, v => config.DailyRestartHour = v),
+        SettingItem.Flag(Loc.T("Перезапуск при падении", "Restart on crash"), () => config.RestartOnExit, v => config.RestartOnExit = v),
+        SettingItem.Number(Loc.T("Пауза перед рестартом, с", "Restart delay, s"), 0, 600, 5, () => config.RestartDelaySeconds, v => config.RestartDelaySeconds = v),
+        SettingItem.Number(Loc.T("Плановый рестарт, час (-1 выкл)", "Daily restart hour (-1 off)"), -1, 23, 1, () => config.DailyRestartHour, v => config.DailyRestartHour = v),
         SettingItem.Text("Cluster token", () => config.ClusterToken, ApplyToken, masked: true),
+        SettingItem.Choice(
+            Loc.T("Язык", "Language"),
+            Languages,
+            () => config.Language,
+            value =>
+            {
+                config.Language = value;
+                Loc.Current = Loc.Resolve(value);
+                // Подписи строятся один раз, поэтому пересобираем их на новом языке.
+                settings = BuildSettings();
+            }),
     ];
 
     /// <summary>Сообщение показывается ограниченное время: устаревшее вводит в заблуждение.</summary>
@@ -100,7 +112,7 @@ internal sealed class Dashboard
         config.ClusterToken = value.Trim();
         Directory.CreateDirectory(config.ClusterPath);
         File.WriteAllText(config.ClusterTokenFile, config.ClusterToken + Environment.NewLine);
-        log.Add($"токен записан в {config.ClusterTokenFile}");
+        log.Add(Loc.T($"токен записан в {config.ClusterTokenFile}", $"token written to {config.ClusterTokenFile}"));
     }
 
     /// <summary>Полноэкранный режим требует настоящего терминала: в пайпе Spectre не умеет прятать курсор.</summary>
@@ -108,11 +120,11 @@ internal sealed class Dashboard
 
     public async Task<int> RunAsync(CancellationToken cancellationToken)
     {
-        log.Add("dstfarm готов. F1 — подсказка по клавишам.");
+        log.Add(Loc.T("dstfarm готов. F1 — подсказка по клавишам.", "dstfarm is ready. Press F1 for the key list."));
         if (!File.Exists(config.ServerExe))
-            log.Add("сервер ещё не установлен: нажмите I");
+            log.Add(Loc.T("сервер ещё не установлен: нажмите I", "the server is not installed yet: press I"));
         if (!config.HasClusterToken())
-            log.Add("нет cluster_token.txt: выберите «Cluster token», Enter и вставьте токен Klei");
+            log.Add(Loc.T("нет cluster_token.txt: выберите «Cluster token», Enter и вставьте токен Klei", "cluster_token.txt is missing: select \"Cluster token\", press Enter and paste your Klei token"));
 
         console.Write(new ControlCode(EnterAlternateScreen));
         try
@@ -130,7 +142,7 @@ internal sealed class Dashboard
             config.Save();
         }
 
-        console.MarkupLine("[grey]настройки сохранены в config.json[/]");
+        console.MarkupLine(Loc.T("[grey]настройки сохранены в config.json[/]", "[grey]settings saved to config.json[/]"));
         return 0;
     }
 
@@ -183,7 +195,7 @@ internal sealed class Dashboard
                 return true;
             case ConsoleKey.Escape:
                 editingBuffer = null;
-                Message = "изменение отменено";
+                Message = Loc.T("изменение отменено", "edit cancelled");
                 return true;
             case ConsoleKey.Backspace:
                 if (editingBuffer!.Length > 0)
@@ -218,7 +230,7 @@ internal sealed class Dashboard
                 if (settings[selected].IsEditable)
                 {
                     editingBuffer = settings[selected].ReadText?.Invoke() ?? string.Empty;
-                    Message = "введите значение, Enter — применить, Esc — отмена";
+                    Message = Loc.T("введите значение, Enter — применить, Esc — отмена", "type a value, Enter to apply, Esc to cancel");
                 }
                 else
                 {
@@ -240,7 +252,7 @@ internal sealed class Dashboard
                 await SelfUpdateAsync(cancellationToken).ConfigureAwait(false);
                 break;
             case ConsoleKey.F1:
-                Message = "стрелки — выбор и значение, Enter — правка, S — старт/стоп, I — установка сервера, G — применить, U — обновить dstfarm, Q — выход";
+                Message = Loc.T("стрелки — выбор и значение, Enter — правка, S — старт/стоп, I — установка сервера, G — применить, U — обновить dstfarm, Q — выход", "arrows select and change, Enter edits, S starts/stops, I installs the server, G applies, U updates dstfarm, Q quits");
                 break;
             case ConsoleKey.Q:
             case ConsoleKey.Escape:
@@ -258,32 +270,32 @@ internal sealed class Dashboard
         config.Save();
         clusterDirty = false;
         clusterCheckedAt = DateTimeOffset.MinValue;
-        Message = $"кластер обновлён: {written.Count} файлов";
-        log.Add($"кластер записан в {config.ClusterPath}");
+        Message = Loc.T($"кластер обновлён: {written.Count} файлов", $"cluster updated: {written.Count} files");
+        log.Add(Loc.T($"кластер записан в {config.ClusterPath}", $"cluster written to {config.ClusterPath}"));
     }
 
     private async Task InstallAsync(CancellationToken cancellationToken)
     {
         if (busy)
         {
-            Message = "уже идёт установка";
+            Message = Loc.T("уже идёт установка", "an install is already running");
             return;
         }
 
         busy = true;
-        Message = "установка сервера, это надолго";
+        Message = Loc.T("установка сервера, это надолго", "installing the server, this takes a while");
         try
         {
             var installer = new SteamCmdInstaller(config);
             var progress = new Progress<SteamProgress>(report => download = report);
             await installer.InstallServerAsync(validate: true, line => log.Add(line), progress, cancellationToken).ConfigureAwait(false);
             config.Save();
-            Message = "сервер установлен";
+            Message = Loc.T("сервер установлен", "server installed");
         }
         catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException or IOException)
         {
-            log.Add($"ошибка установки: {exception.Message}");
-            Message = "установка не удалась, подробности в логе";
+            log.Add(Loc.T($"ошибка установки: {exception.Message}", $"install failed: {exception.Message}"));
+            Message = Loc.T("установка не удалась, подробности в логе", "install failed, see the log");
         }
         finally
         {
@@ -300,7 +312,7 @@ internal sealed class Dashboard
         var text = report.HasTotal
             ? $"{report.Percent:F1}%  {SteamProgress.Format(report.BytesDone)} / {SteamProgress.Format(report.BytesTotal)}"
             : $"{report.Percent:F1}%";
-        var state = string.IsNullOrWhiteSpace(report.State) ? "загрузка" : report.State;
+        var state = string.IsNullOrWhiteSpace(report.State) ? Loc.T("загрузка", "downloading") : report.State;
         return $"[cyan][[{Markup.Escape(bar)}]][/] {Markup.Escape(text)}  [grey]{Markup.Escape(state)}[/]";
     }
 
@@ -308,53 +320,53 @@ internal sealed class Dashboard
     {
         if (busy)
         {
-            Message = "дождитесь окончания текущей операции";
+            Message = Loc.T("дождитесь окончания текущей операции", "wait for the current operation to finish");
             return;
         }
 
         if (supervisorTask is not null)
         {
-            Message = "сначала остановите сервер клавишей S";
+            Message = Loc.T("сначала остановите сервер клавишей S", "stop the server first with S");
             return;
         }
 
         if (Environment.ProcessPath is not { } exePath)
         {
-            Message = "не удалось определить путь к dstfarm.exe";
+            Message = Loc.T("не удалось определить путь к dstfarm.exe", "could not determine the path to dstfarm.exe");
             return;
         }
 
         busy = true;
-        Message = "проверяю обновления";
+        Message = Loc.T("проверяю обновления", "checking for updates");
         try
         {
             var updater = new SelfUpdater();
             var release = await updater.FetchLatestAsync(cancellationToken).ConfigureAwait(false);
             if (release is null)
             {
-                Message = "релиз с файлом dstfarm.exe не найден";
+                Message = Loc.T("релиз с файлом dstfarm.exe не найден", "no release with a dstfarm.exe asset was found");
                 return;
             }
 
             var current = SelfUpdater.CurrentVersion;
             if (release.Version <= current)
             {
-                Message = $"уже последняя версия ({current.ToString(3)})";
+                Message = Loc.T($"уже последняя версия ({current.ToString(3)})", $"already the latest version ({current.ToString(3)})");
                 return;
             }
 
-            log.Add($"найдено обновление {release.Tag}, качаю");
+            log.Add(Loc.T($"найдено обновление {release.Tag}, качаю", $"update {release.Tag} found, downloading"));
             var progress = new Progress<SteamProgress>(report => download = report);
             var file = await updater.DownloadAsync(release, progress, cancellationToken).ConfigureAwait(false);
             SelfUpdater.Apply(file, exePath);
 
-            Message = $"обновлено до {release.Version.ToString(3)} — перезапустите dstfarm";
-            log.Add($"новая версия установлена: {exePath}");
+            Message = Loc.T($"обновлено до {release.Version.ToString(3)} — перезапустите dstfarm", $"updated to {release.Version.ToString(3)} — restart dstfarm");
+            log.Add(Loc.T($"новая версия установлена: {exePath}", $"new version installed: {exePath}"));
         }
         catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException or IOException)
         {
-            log.Add($"обновление не удалось: {exception.Message}");
-            Message = "обновление не удалось, подробности в логе";
+            log.Add(Loc.T($"обновление не удалось: {exception.Message}", $"update failed: {exception.Message}"));
+            Message = Loc.T("обновление не удалось, подробности в логе", "update failed, see the log");
         }
         finally
         {
@@ -367,9 +379,9 @@ internal sealed class Dashboard
     {
         if (supervisorTask is not null)
         {
-            Message = "останавливаю сервер";
+            Message = Loc.T("останавливаю сервер", "stopping the server");
             await StopSupervisorAsync().ConfigureAwait(false);
-            Message = "сервер остановлен";
+            Message = Loc.T("сервер остановлен", "server stopped");
             return;
         }
 
@@ -378,13 +390,13 @@ internal sealed class Dashboard
 
         if (!File.Exists(config.ServerExe))
         {
-            Message = "сервер не установлен: нажмите I";
+            Message = Loc.T("сервер не установлен: нажмите I", "the server is not installed: press I");
             return;
         }
 
         if (!config.HasClusterToken())
         {
-            Message = "нет cluster_token.txt: заполните поле Cluster token";
+            Message = Loc.T("нет cluster_token.txt: заполните поле Cluster token", "cluster_token.txt is missing: fill in the Cluster token field");
             return;
         }
 
@@ -401,10 +413,10 @@ internal sealed class Dashboard
             }
             catch (Exception exception) when (exception is InvalidOperationException or IOException)
             {
-                log.Add($"супервизор упал: {exception.Message}");
+                log.Add(Loc.T($"супервизор упал: {exception.Message}", $"supervisor crashed: {exception.Message}"));
             }
         }, CancellationToken.None);
-        Message = "сервер запускается";
+        Message = Loc.T("сервер запускается", "server is starting");
     }
 
     private async Task StopSupervisorAsync()
@@ -448,12 +460,12 @@ internal sealed class Dashboard
             .Expand());
 
         layout["settings"].Update(new Panel(SettingsTable())
-            .Header("[cyan] настройки фарма [/]")
+            .Header(Loc.T("[cyan] настройки фарма [/]", "[cyan] farm settings [/]"))
             .Border(BoxBorder.Rounded)
             .Expand());
 
         layout["status"].Update(new Panel(StatusTable())
-            .Header("[cyan] статус [/]")
+            .Header(Loc.T("[cyan] статус [/]", "[cyan] status [/]"))
             .Border(BoxBorder.Rounded)
             .Expand());
 
@@ -461,7 +473,7 @@ internal sealed class Dashboard
         layout["log"].Update(new Panel(new Rows(log.Tail(logRows)
                 .Select(line => new Markup(Markup.Escape(Fit(line, logWidth))))
                 .ToArray()))
-            .Header("[cyan] лог [/]")
+            .Header(Loc.T("[cyan] лог [/]", "[cyan] log [/]"))
             .Border(BoxBorder.Rounded)
             .Expand());
 
@@ -487,9 +499,9 @@ internal sealed class Dashboard
     private string HeaderMarkup()
     {
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.1.0";
-        var state = supervisorTask is not null ? "[green]сервер работает[/]" : "[grey]сервер остановлен[/]";
+        var state = supervisorTask is not null ? Loc.T("[green]сервер работает[/]", "[green]server running[/]") : Loc.T("[grey]сервер остановлен[/]", "[grey]server stopped[/]");
         var dirty = clusterDirty || !ClusterInSync()
-            ? "  [yellow]настройки не применены к кластеру (G)[/]"
+            ? Loc.T("  [yellow]настройки не применены к кластеру (G)[/]", "  [yellow]settings not applied to the cluster (G)[/]")
             : string.Empty;
         if (download is { } report)
             return $"[bold]dstfarm {version}[/]   {RenderBar(report)}";
@@ -523,37 +535,38 @@ internal sealed class Dashboard
         table.AddColumn(new TableColumn(string.Empty));
         table.AddColumn(new TableColumn(string.Empty).RightAligned());
 
-        table.AddRow("кластер", Markup.Escape(config.Cluster));
-        table.AddRow("сервер", File.Exists(config.ServerExe) ? "[green]установлен[/]" : "[red]нет[/]");
-        table.AddRow("cluster_token", config.HasClusterToken() ? "[green]есть[/]" : "[red]нет[/]");
-        table.AddRow("порт", config.ServerPort.ToString(CultureInfo.InvariantCulture));
+        table.AddRow(Loc.T("кластер", "cluster"), Markup.Escape(config.Cluster));
+        table.AddRow(Loc.T("сервер", "server"), File.Exists(config.ServerExe) ? Loc.T("[green]установлен[/]", "[green]installed[/]") : Loc.T("[red]нет[/]", "[red]missing[/]"));
+        table.AddRow("cluster_token", config.HasClusterToken() ? Loc.T("[green]есть[/]", "[green]present[/]") : Loc.T("[red]нет[/]", "[red]missing[/]"));
+        table.AddRow(Loc.T("порт", "port"), config.ServerPort.ToString(CultureInfo.InvariantCulture));
 
         if (supervisorTask is not null)
         {
-            table.AddRow("порты", "[grey]слушает сервер[/]");
+            table.AddRow(Loc.T("порты", "ports"), Loc.T("[grey]слушает сервер[/]", "[grey]held by the server[/]"));
         }
         else
         {
             var conflicts = PortProbe.Conflicts(config);
             table.AddRow(
-                "порты",
+                Loc.T("порты", "ports"),
                 conflicts.Count == 0
-                    ? "[green]свободны[/]"
-                    : $"[red]занят {string.Join(", ", conflicts.Select(c => c.Port))}[/]");
+                    ? Loc.T("[green]свободны[/]", "[green]free[/]")
+                    : Loc.T($"[red]занят {string.Join(", ", conflicts.Select(c => c.Port))}[/]", $"[red]in use: {string.Join(", ", conflicts.Select(c => c.Port))}[/]"));
         }
 
         var current = supervisor?.StartedAt is { } started
             ? DateTimeOffset.Now - started
             : TimeSpan.Zero;
-        table.AddRow("сессия", current == TimeSpan.Zero ? "[grey]—[/]" : $"{current:hh\\:mm\\:ss}");
-        table.AddRow("всего аптайма", string.Create(CultureInfo.InvariantCulture, $"{uptime.Total.TotalHours:F1} ч"));
-        table.AddRow("сессий", uptime.Sessions.ToString(CultureInfo.InvariantCulture));
+        table.AddRow(Loc.T("сессия", "session"), current == TimeSpan.Zero ? "[grey]—[/]" : $"{current:hh\\:mm\\:ss}");
+        var hours = uptime.Total.TotalHours.ToString("F1", CultureInfo.InvariantCulture);
+        table.AddRow(Loc.T("всего аптайма", "total uptime"), Loc.T($"{hours} ч", $"{hours} h"));
+        table.AddRow(Loc.T("сессий", "sessions"), uptime.Sessions.ToString(CultureInfo.InvariantCulture));
 
         foreach (var shard in supervisor?.Snapshot() ?? [])
         {
             var value = shard.Running
                 ? $"[green]pid {shard.ProcessId}[/] [grey]/[/] {shard.Restarts}"
-                : "[grey]не запущен[/]";
+                : Loc.T("[grey]не запущен[/]", "[grey]not running[/]");
             table.AddRow(Markup.Escape(shard.Name), value);
         }
 
@@ -566,9 +579,9 @@ internal sealed class Dashboard
     private string FooterMarkup()
     {
         if (editingBuffer is not null)
-            return "[cyan]Enter[/] применить   [cyan]Esc[/] отмена";
-        var toggle = supervisorTask is not null ? "остановить" : "запустить";
-        return $"[cyan]стрелки[/] выбор/значение   [cyan]Enter[/] правка   [cyan]S[/] {toggle}   " +
-               $"[cyan]I[/] установить сервер   [cyan]G[/] применить   [cyan]U[/] обновить   [cyan]Q[/] выход";
+            return Loc.T("[cyan]Enter[/] применить   [cyan]Esc[/] отмена", "[cyan]Enter[/] apply   [cyan]Esc[/] cancel");
+        var toggle = supervisorTask is not null ? Loc.T("остановить", "stop") : Loc.T("запустить", "start");
+        return Loc.T($"[cyan]стрелки[/] выбор/значение   [cyan]Enter[/] правка   [cyan]S[/] {toggle}   ", $"[cyan]arrows[/] select/change   [cyan]Enter[/] edit   [cyan]S[/] {toggle}   ") +
+               Loc.T($"[cyan]I[/] установить сервер   [cyan]G[/] применить   [cyan]U[/] обновить   [cyan]Q[/] выход", $"[cyan]I[/] install server   [cyan]G[/] apply   [cyan]U[/] update   [cyan]Q[/] quit");
     }
 }

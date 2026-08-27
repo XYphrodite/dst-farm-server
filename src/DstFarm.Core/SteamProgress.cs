@@ -16,12 +16,12 @@ public sealed record SteamProgress(string State, double Percent, long BytesDone,
     public static string Format(long bytes)
     {
         if (bytes >= 1L << 30)
-            return string.Create(CultureInfo.InvariantCulture, $"{bytes / (double)(1L << 30):F1} ГБ");
+            return string.Create(CultureInfo.InvariantCulture, $"{bytes / (double)(1L << 30):F1} {Loc.T("ГБ", "GB")}");
         if (bytes >= 1L << 20)
-            return string.Create(CultureInfo.InvariantCulture, $"{bytes / (double)(1L << 20):F0} МБ");
+            return string.Create(CultureInfo.InvariantCulture, $"{bytes / (double)(1L << 20):F0} {Loc.T("МБ", "MB")}");
         if (bytes >= 1024)
-            return string.Create(CultureInfo.InvariantCulture, $"{bytes / 1024.0:F0} КБ");
-        return string.Create(CultureInfo.InvariantCulture, $"{bytes} Б");
+            return string.Create(CultureInfo.InvariantCulture, $"{bytes / 1024.0:F0} {Loc.T("КБ", "KB")}");
+        return string.Create(CultureInfo.InvariantCulture, $"{bytes} {Loc.T("Б", "B")}");
     }
 }
 

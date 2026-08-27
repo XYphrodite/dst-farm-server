@@ -41,9 +41,9 @@ public sealed class ServerSupervisor : IDisposable
     public async Task RunAsync(CancellationToken cancellationToken)
     {
         if (!File.Exists(config.ServerExe))
-            throw new InvalidOperationException($"сервер не установлен: {config.ServerExe}");
+            throw new InvalidOperationException(Loc.T($"сервер не установлен: {config.ServerExe}", $"the server is not installed: {config.ServerExe}"));
         if (!config.HasClusterToken())
-            throw new InvalidOperationException("нет cluster_token.txt: сервер не стартует и дропы не капают");
+            throw new InvalidOperationException(Loc.T("нет cluster_token.txt: сервер не стартует и дропы не капают", "cluster_token.txt is missing: the server will not start and no drops are earned"));
 
         Directory.CreateDirectory(config.StatePath);
         Directory.CreateDirectory(config.LogPath);
@@ -51,12 +51,12 @@ public sealed class ServerSupervisor : IDisposable
         await File.WriteAllTextAsync(PidFile, Environment.ProcessId.ToString(CultureInfo.InvariantCulture), cancellationToken).ConfigureAwait(false);
 
         foreach (var conflict in PortProbe.Conflicts(config))
-            Log?.Invoke($"внимание: порт {conflict.Port} ({conflict.Purpose}) уже занят — сервер может не подняться");
+            Log?.Invoke(Loc.T($"внимание: порт {conflict.Port} ({conflict.Purpose}) уже занят — сервер может не подняться", $"warning: port {conflict.Port} ({conflict.Purpose}) is already in use — the server may fail to start"));
 
         StartedAt = DateTimeOffset.Now;
         var stopwatch = Stopwatch.StartNew();
         var nextDailyRestart = NextDailyRestart();
-        Log?.Invoke($"супервизор запущен, кластер {config.Cluster}, порт {config.ServerPort}");
+        Log?.Invoke(Loc.T($"супервизор запущен, кластер {config.Cluster}, порт {config.ServerPort}", $"supervisor started, cluster {config.Cluster}, port {config.ServerPort}"));
 
         try
         {
@@ -73,7 +73,7 @@ public sealed class ServerSupervisor : IDisposable
 
                     if (runner is not null)
                     {
-                        Log?.Invoke($"{shard} завершился (код {runner.ExitCode}), перезапуск через {config.RestartDelaySeconds} с");
+                        Log?.Invoke(Loc.T($"{shard} завершился (код {runner.ExitCode}), перезапуск через {config.RestartDelaySeconds} с", $"{shard} exited (code {runner.ExitCode}), restarting in {config.RestartDelaySeconds}s"));
                         var restarts = runner.Restarts;
                         runner.Dispose();
                         if (!config.RestartOnExit)
@@ -89,13 +89,13 @@ public sealed class ServerSupervisor : IDisposable
 
                 if (File.Exists(StopFlagFile))
                 {
-                    Log?.Invoke("получен стоп-сигнал");
+                    Log?.Invoke(Loc.T("получен стоп-сигнал", "stop signal received"));
                     break;
                 }
 
                 if (nextDailyRestart is { } due && DateTimeOffset.Now >= due)
                 {
-                    Log?.Invoke("плановый перезапуск по расписанию");
+                    Log?.Invoke(Loc.T("плановый перезапуск по расписанию", "scheduled restart"));
                     await ShutdownAllAsync().ConfigureAwait(false);
                     nextDailyRestart = NextDailyRestart();
                 }
@@ -105,7 +105,7 @@ public sealed class ServerSupervisor : IDisposable
         }
         catch (OperationCanceledException)
         {
-            Log?.Invoke("остановка по запросу");
+            Log?.Invoke(Loc.T("остановка по запросу", "stopping on request"));
         }
         finally
         {
@@ -114,7 +114,7 @@ public sealed class ServerSupervisor : IDisposable
             StartedAt = null;
             File.Delete(PidFile);
             File.Delete(StopFlagFile);
-            Log?.Invoke("сервер остановлен");
+            Log?.Invoke(Loc.T("сервер остановлен", "server stopped"));
         }
     }
 
@@ -123,7 +123,7 @@ public sealed class ServerSupervisor : IDisposable
         var runner = new ShardRunner(config, shard, restarts, line => Log?.Invoke(line));
         lock (sync)
             runners[shard] = runner;
-        Log?.Invoke($"{shard} запущен, pid={runner.ProcessId}");
+        Log?.Invoke(Loc.T($"{shard} запущен, pid={runner.ProcessId}", $"{shard} started, pid={runner.ProcessId}"));
     }
 
     private async Task ShutdownAllAsync()
@@ -138,7 +138,7 @@ public sealed class ServerSupervisor : IDisposable
         foreach (var runner in active)
         {
             if (runner.Running)
-                Log?.Invoke($"штатное завершение {runner.Shard}, мир сохраняется");
+                Log?.Invoke(Loc.T($"штатное завершение {runner.Shard}, мир сохраняется", $"shutting {runner.Shard} down gracefully, the world is being saved"));
             await runner.ShutdownAsync(TimeSpan.FromSeconds(45)).ConfigureAwait(false);
             runner.Dispose();
         }
@@ -181,7 +181,7 @@ public sealed class ServerSupervisor : IDisposable
 
             var logFile = Path.Combine(config.LogPath, $"{shard.ToLowerInvariant()}.log");
             logWriter = new StreamWriter(logFile, append: true) { AutoFlush = true };
-            logWriter.WriteLine(string.Create(CultureInfo.InvariantCulture, $"===== старт {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss} ====="));
+            logWriter.WriteLine(string.Create(CultureInfo.InvariantCulture, $"===== start {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss} ====="));
 
             var startInfo = new ProcessStartInfo(config.ServerExe)
             {
@@ -215,7 +215,7 @@ public sealed class ServerSupervisor : IDisposable
             process.ErrorDataReceived += (_, e) => Write(e.Data, log);
 
             if (!process.Start())
-                throw new InvalidOperationException($"не удалось запустить шард {shard}");
+                throw new InvalidOperationException(Loc.T($"не удалось запустить шард {shard}", $"could not start shard {shard}"));
 
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();

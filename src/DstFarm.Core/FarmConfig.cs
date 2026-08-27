@@ -27,6 +27,11 @@ public sealed class FarmConfig
     public int ServerPort { get; set; } = 10999;
     public int MaxPlayers { get; set; } = 6;
 
+    // Steam-порты сервера. Клиент игры и сам Steam на этой же машине занимают часть
+    // диапазона 27015-27050, поэтому их иногда приходится сдвигать.
+    public int MasterServerPort { get; set; } = 27018;
+    public int AuthenticationPort { get; set; } = 8768;
+
     // Профиль фарма
     public string GameMode { get; set; } = "endless";
     public bool OnlyDay { get; set; } = true;

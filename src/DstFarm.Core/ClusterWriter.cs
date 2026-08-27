@@ -101,8 +101,8 @@ public static class ClusterWriter
             builder.AppendLine("name = Caves");
         builder.AppendLine();
         builder.AppendLine("[STEAM]");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"master_server_port = {(caves ? 27019 : 27018)}");
-        builder.AppendLine(CultureInfo.InvariantCulture, $"authentication_port = {(caves ? 8769 : 8768)}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"master_server_port = {(caves ? config.MasterServerPort + 1 : config.MasterServerPort)}");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"authentication_port = {(caves ? config.AuthenticationPort + 1 : config.AuthenticationPort)}");
         builder.AppendLine();
         builder.AppendLine("[ACCOUNT]");
         builder.AppendLine("encode_user_path = true");

@@ -33,6 +33,12 @@
 | `ClusterToken` | пусто | токен Klei, дублируется в `cluster_token.txt` |
 | `ServerPort` | `10999` | UDP-порт мира. Пещеры занимают `ServerPort + 1` |
 | `MaxPlayers` | `6` | лимит игроков |
+| `MasterServerPort` | `27018` | steam master port. Пещеры занимают `+1` |
+| `AuthenticationPort` | `8768` | steam auth port. Пещеры занимают `+1` |
+
+Steam-порты вынесены в настройки не просто так: клиент Steam на той же машине занимает
+часть диапазона 27015-27050, и сервер тогда не поднимается. Проверить занятость —
+`dstfarm status`, подробности — [same-machine.md](same-machine.md).
 
 ## Супервизор
 

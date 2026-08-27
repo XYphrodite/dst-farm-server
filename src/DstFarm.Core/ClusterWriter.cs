@@ -200,6 +200,6 @@ public static class ClusterWriter
             return;
         File.WriteAllText(path, content);
         written.Add(path);
-        log?.Invoke($"{(overwrite ? "обновлён" : "создан")} {Path.GetFileName(path)}");
+        log?.Invoke($"{(overwrite ? Loc.T("обновлён", "updated") : Loc.T("создан", "created"))} {Path.GetFileName(path)}");
     }
 }

@@ -17,14 +17,14 @@ public static class PortProbe
         var busy = ActiveUdpPorts();
         var planned = new List<(int Port, string Purpose)>
         {
-            (config.ServerPort, "мир (Master)"),
+            (config.ServerPort, Loc.T("мир (Master)", "world (Master)")),
             (config.MasterServerPort, "steam master (Master)"),
             (config.AuthenticationPort, "steam auth (Master)"),
         };
 
         if (config.EnableCaves)
         {
-            planned.Add((config.ServerPort + 1, "мир (Caves)"));
+            planned.Add((config.ServerPort + 1, Loc.T("мир (Caves)", "world (Caves)")));
             planned.Add((config.MasterServerPort + 1, "steam master (Caves)"));
             planned.Add((config.AuthenticationPort + 1, "steam auth (Caves)"));
         }

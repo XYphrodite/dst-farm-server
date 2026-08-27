@@ -1,32 +1,35 @@
-# Как на самом деле работает фарм в Don't Starve Together
+# How farming actually works in Don't Starve Together
 
-Короткий раздел, который стоит прочитать до того, как ждать результата.
+Русская версия: [ru/farming.md](ru/farming.md).
 
-## Дропы Klei
+Worth reading before expecting results.
 
-Скины и сундуки Klei выдаёт **аккаунту игрока, который находится в игре**. Не серверу.
-Выделенный сервер сам по себе не нафармит ничего — его роль в другом: дать мир, где
-персонаж может стоять сутками и не погибнуть, при этом не нагружая машину.
+## Klei drops
 
-Три условия, без которых дропов не будет:
+Skins and chests are granted to **the account of a player who is in the game**, not to the
+server. A dedicated server earns nothing by itself. Its role is different: to provide a world
+where a character can stand around for days without dying, while barely loading the machine.
 
-1. **Клиент подключён к миру.** Считается время в игре, а не аптайм сервера.
-2. **`offline_cluster = false`.** Офлайн-мир не идёт в зачёт. `dstfarm` всегда пишет `false`
-   и не даёт поменять это из интерфейса.
-3. **`cluster_token.txt` на месте.** Иначе сервер просто не поднимется.
+Three conditions, or no drops:
 
-У Klei есть недельный лимит на количество выданных предметов. Когда он выбран, дальнейший
-аптайм ничего не добавляет до сброса лимита.
+1. **A client is connected to the world.** Time in game counts, not server uptime.
+2. **`offline_cluster = false`.** An offline world does not count. dstfarm always writes
+   `false` and does not let the interface change it.
+3. **`cluster_token.txt` is in place.** Otherwise the server simply will not come up.
 
-## Фарм ресурсов
+Klei caps how many items you can receive per week. Once the cap is reached, further uptime
+adds nothing until it resets.
 
-Второй смысл слова «фарм» — материалы в мире. Здесь решают настройки генерации, и они уже
-выставлены под долгую безопасную сессию (см. [settings.md](settings.md)): большой запас
-времени, отсутствие угроз, отключённые сезоны. Если нужен именно ресурсный фарм, поднимите
-`Размер мира` до `huge` и включите пещеры — но учтите, что нагрузка на CPU вырастет заметно.
+## Farming resources
 
-## Чего этот инструмент не делает
+The other meaning of "farming" is materials in the world. Here worldgen settings decide, and
+they are already tuned for a long safe session (see [settings.md](settings.md)): plenty of
+time, no threats, seasons disabled. If you specifically want resources, raise `World size` to
+`huge` and enable caves — but expect a noticeably higher CPU load.
 
-* Не управляет клиентом игры и не эмулирует нажатия. Персонажа в игру заводите вы.
-* Не обходит лимиты Klei и не влияет на частоту дропов.
-* Не даёт предметы, которые выпадают только за события или покупку.
+## What this tool does not do
+
+* It does not drive the game client and does not emulate input. Getting a character into the
+  world is on you.
+* It does not bypass Klei limits and does not affect the drop rate.
+* It does not grant items that only come from events or purchases.

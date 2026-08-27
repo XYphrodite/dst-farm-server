@@ -12,6 +12,7 @@ internal static class Program
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         var console = AnsiConsole.Console;
         var config = FarmConfig.Load();
+        Loc.Current = Loc.Resolve(config.Language);
 
         if (Environment.ProcessPath is { } processPath)
             SelfUpdater.CleanupBackup(processPath);
@@ -49,7 +50,7 @@ internal static class Program
         }
         catch (InvalidOperationException exception)
         {
-            console.MarkupLineInterpolated($"[red]ошибка:[/] {exception.Message}");
+            console.MarkupLine(Loc.T($"[red]ошибка:[/] {Markup.Escape(exception.Message)}", $"[red]error:[/] {Markup.Escape(exception.Message)}"));
             return 1;
         }
     }
@@ -58,8 +59,8 @@ internal static class Program
     {
         if (!Dashboard.IsInteractiveConsole)
         {
-            console.MarkupLine("[yellow]полноэкранный режим требует настоящего терминала[/] (сейчас ввод или вывод перенаправлен).");
-            console.MarkupLine("Запустите [cyan]dstfarm[/] прямо в консоли или используйте команды: [cyan]dstfarm --help[/].");
+            console.MarkupLine(Loc.T("[yellow]полноэкранный режим требует настоящего терминала[/] (сейчас ввод или вывод перенаправлен).", "[yellow]the full-screen mode needs a real terminal[/] (input or output is redirected right now)."));
+            console.MarkupLine(Loc.T("Запустите [cyan]dstfarm[/] прямо в консоли или используйте команды: [cyan]dstfarm --help[/].", "Run [cyan]dstfarm[/] in a console window, or use the commands: [cyan]dstfarm --help[/]."));
             console.WriteLine();
             return Status(console, config);
         }
@@ -102,7 +103,7 @@ internal static class Program
                     new SpinnerColumn())
                 .StartAsync(async context =>
                 {
-                    var task = context.AddTask("подготовка", maxValue: 100);
+                    var task = context.AddTask(Loc.T("подготовка", "preparing"), maxValue: 100);
                     var progress = new Progress<SteamProgress>(report =>
                     {
                         task.Description = Markup.Escape(Describe(report));
@@ -110,7 +111,7 @@ internal static class Program
                     });
 
                     await installer.InstallServerAsync(validate, Remember, progress, cancellationToken).ConfigureAwait(false);
-                    task.Description = "готово";
+                    task.Description = Loc.T("готово", "done");
                     task.Value = 100;
                 }).ConfigureAwait(false);
         }
@@ -122,13 +123,13 @@ internal static class Program
         }
 
         config.Save();
-        console.MarkupLineInterpolated($"сервер установлен: [cyan]{config.ServerExe}[/]");
+        console.MarkupLine(Loc.T($"сервер установлен: [cyan]{config.ServerExe}[/]", $"server installed: [cyan]{config.ServerExe}[/]"));
         return 0;
     }
 
     private static string Describe(SteamProgress report)
     {
-        var state = string.IsNullOrWhiteSpace(report.State) ? "загрузка" : report.State;
+        var state = string.IsNullOrWhiteSpace(report.State) ? Loc.T("загрузка", "downloading") : report.State;
         return report.HasTotal
             ? $"{state}  {SteamProgress.Format(report.BytesDone)} / {SteamProgress.Format(report.BytesTotal)}"
             : state;
@@ -159,9 +160,9 @@ internal static class Program
         var force = args.Contains("--force", StringComparer.OrdinalIgnoreCase);
         ClusterWriter.Write(config, force, line => console.MarkupLineInterpolated($"[grey]{line}[/]"));
         config.Save();
-        console.MarkupLineInterpolated($"конфиг кластера: [cyan]{config.ClusterPath}[/]");
+        console.MarkupLine(Loc.T($"конфиг кластера: [cyan]{config.ClusterPath}[/]", $"cluster config: [cyan]{config.ClusterPath}[/]"));
         if (!config.HasClusterToken())
-            console.MarkupLine("[yellow]нет cluster_token.txt — без него сервер не стартует. Команда: dstfarm token <ТОКЕН>[/]");
+            console.MarkupLine(Loc.T("[yellow]нет cluster_token.txt — без него сервер не стартует. Команда: dstfarm token <ТОКЕН>[/]", "[yellow]cluster_token.txt is missing — the server will not start without it. Run: dstfarm token <TOKEN>[/]"));
         return 0;
     }
 
@@ -169,7 +170,7 @@ internal static class Program
     {
         if (args.Length < 2)
         {
-            console.MarkupLine("[red]использование:[/] dstfarm token <ТОКЕН>");
+            console.MarkupLine(Loc.T("[red]использование:[/] dstfarm token <ТОКЕН>", "[red]usage:[/] dstfarm token <TOKEN>"));
             return 2;
         }
 
@@ -177,7 +178,7 @@ internal static class Program
         config.Save();
         Directory.CreateDirectory(config.ClusterPath);
         File.WriteAllText(config.ClusterTokenFile, config.ClusterToken + Environment.NewLine);
-        console.MarkupLineInterpolated($"токен записан в [cyan]{config.ClusterTokenFile}[/]");
+        console.MarkupLine(Loc.T($"токен записан в [cyan]{config.ClusterTokenFile}[/]", $"token written to [cyan]{config.ClusterTokenFile}[/]"));
         return 0;
     }
 
@@ -186,7 +187,7 @@ internal static class Program
         if (args.Contains("--detach", StringComparer.OrdinalIgnoreCase))
         {
             var pid = new SupervisorControl(config).StartDetached();
-            console.MarkupLineInterpolated($"супервизор в фоне, pid=[cyan]{pid}[/]");
+            console.MarkupLine(Loc.T($"супервизор в фоне, pid=[cyan]{pid}[/]", $"supervisor running in the background, pid=[cyan]{pid}[/]"));
             return 0;
         }
 
@@ -218,26 +219,29 @@ internal static class Program
         var running = control.IsRunning;
 
         var table = new Table().Border(TableBorder.Rounded);
-        table.AddColumn("параметр");
-        table.AddColumn("значение");
-        table.AddRow("кластер", $"{config.Cluster}  ({config.ClusterPath})");
-        table.AddRow("сервер", File.Exists(config.ServerExe) ? "установлен" : "[red]не установлен[/]");
-        table.AddRow("cluster_token", config.HasClusterToken() ? "есть" : "[red]нет[/]");
+        table.AddColumn(Loc.T("параметр", "setting"));
+        table.AddColumn(Loc.T("значение", "value"));
+        table.AddRow(Loc.T("кластер", "cluster"), $"{config.Cluster}  ({config.ClusterPath})");
+        table.AddRow(Loc.T("сервер", "server"), File.Exists(config.ServerExe) ? Loc.T("установлен", "installed") : Loc.T("[red]не установлен[/]", "[red]not installed[/]"));
+        table.AddRow("cluster_token", config.HasClusterToken() ? Loc.T("есть", "present") : Loc.T("[red]нет[/]", "[red]missing[/]"));
         table.AddRow(
-            "настройки",
+            Loc.T("настройки", "settings"),
             ClusterWriter.MatchesDisk(config)
-                ? "применены к кластеру"
-                : "[yellow]не применены — dstfarm init --force[/]");
-        table.AddRow("состояние", running ? "[green]работает[/]" : "остановлен");
-        table.AddRow("суммарный аптайм", string.Create(CultureInfo.InvariantCulture, $"{uptime.Total.TotalHours:F1} ч за {uptime.Sessions} сессий"));
+                ? Loc.T("применены к кластеру", "applied to the cluster")
+                : Loc.T("[yellow]не применены — dstfarm init --force[/]", "[yellow]not applied — dstfarm init --force[/]"));
+        table.AddRow(Loc.T("состояние", "state"), running ? Loc.T("[green]работает[/]", "[green]running[/]") : Loc.T("остановлен", "stopped"));
+        var hours = uptime.Total.TotalHours.ToString("F1", CultureInfo.InvariantCulture);
+        table.AddRow(
+            Loc.T("суммарный аптайм", "total uptime"),
+            Loc.T($"{hours} ч за {uptime.Sessions} сессий", $"{hours} h over {uptime.Sessions} sessions"));
 
         foreach (var port in PortProbe.Inspect(config))
         {
             // Когда сервер поднят, порты занимает он сам — это не конфликт.
             var state = port.Busy
-                ? running ? "[grey]слушает сервер[/]" : "[red]занят[/]"
-                : "свободен";
-            table.AddRow($"порт {port.Port}", $"{port.Purpose} — {state}");
+                ? running ? Loc.T("[grey]слушает сервер[/]", "[grey]held by the server[/]") : Loc.T("[red]занят[/]", "[red]in use[/]")
+                : Loc.T("свободен", "free");
+            table.AddRow(Loc.T($"порт {port.Port}", $"port {port.Port}"), $"{port.Purpose} — {state}");
         }
 
         console.Write(table);
@@ -245,8 +249,8 @@ internal static class Program
         var conflicts = running ? [] : PortProbe.Conflicts(config);
         if (conflicts.Count > 0)
         {
-            console.MarkupLine("[yellow]Занятые порты нужно освободить или сдвинуть:[/] "
-                + "dstfarm config --set MasterServerPort=27020 AuthenticationPort=8770, затем dstfarm init --force");
+            console.MarkupLine(Loc.T("[yellow]Занятые порты нужно освободить или сдвинуть:[/] ", "[yellow]Free the busy ports or move them:[/] ")
+                + Loc.T("dstfarm config --set MasterServerPort=27020 AuthenticationPort=8770, затем dstfarm init --force", "dstfarm config --set MasterServerPort=27020 AuthenticationPort=8770, then dstfarm init --force"));
         }
         return running ? 0 : 1;
     }
@@ -258,33 +262,33 @@ internal static class Program
         var updater = new SelfUpdater();
         var current = SelfUpdater.CurrentVersion;
 
-        console.MarkupLineInterpolated($"текущая версия: [cyan]{current.ToString(3)}[/]");
+        console.MarkupLine(Loc.T($"текущая версия: [cyan]{current.ToString(3)}[/]", $"current version: [cyan]{current.ToString(3)}[/]"));
 
         var release = await updater.FetchLatestAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException("не нашёл релиз с файлом dstfarm.exe");
+            ?? throw new InvalidOperationException(Loc.T("не нашёл релиз с файлом dstfarm.exe", "no release with a dstfarm.exe asset was found"));
 
-        console.MarkupLineInterpolated($"последний релиз: [cyan]{release.Tag}[/]");
+        console.MarkupLine(Loc.T($"последний релиз: [cyan]{release.Tag}[/]", $"latest release: [cyan]{release.Tag}[/]"));
 
         if (release.Version <= current && !force)
         {
-            console.MarkupLine("[green]обновление не требуется[/]");
+            console.MarkupLine(Loc.T("[green]обновление не требуется[/]", "[green]already up to date[/]"));
             return 0;
         }
 
         if (checkOnly)
         {
-            console.MarkupLineInterpolated($"[yellow]доступно обновление[/] {release.Version.ToString(3)}: dstfarm update");
+            console.MarkupLine(Loc.T($"[yellow]доступно обновление[/] {release.Version.ToString(3)}: dstfarm update", $"[yellow]update available[/] {release.Version.ToString(3)}: dstfarm update"));
             return 0;
         }
 
         if (Environment.ProcessPath is not { } exePath)
-            throw new InvalidOperationException("не удалось определить путь к dstfarm.exe");
+            throw new InvalidOperationException(Loc.T("не удалось определить путь к dstfarm.exe", "could not determine the path to dstfarm.exe"));
 
         if (new SupervisorControl(config).IsRunning)
-            console.MarkupLine("[yellow]сервер запущен: новая версия начнёт работать после dstfarm stop и следующего запуска[/]");
+            console.MarkupLine(Loc.T("[yellow]сервер запущен: новая версия начнёт работать после dstfarm stop и следующего запуска[/]", "[yellow]the server is running: the new version takes effect after dstfarm stop and the next start[/]"));
 
         if (release.Sha256 is null)
-            console.MarkupLine("[yellow]в описании релиза нет SHA-256, проверка контрольной суммы пропущена[/]");
+            console.MarkupLine(Loc.T("[yellow]в описании релиза нет SHA-256, проверка контрольной суммы пропущена[/]", "[yellow]the release notes carry no SHA-256, checksum verification skipped[/]"));
 
         string downloaded;
         if (Dashboard.IsInteractiveConsole)
@@ -295,7 +299,7 @@ internal static class Program
                 .Columns(new TaskDescriptionColumn(), new ProgressBarColumn(), new PercentageColumn(), new RemainingTimeColumn())
                 .StartAsync(async context =>
                 {
-                    var task = context.AddTask("загрузка обновления", maxValue: 100);
+                    var task = context.AddTask(Loc.T("загрузка обновления", "downloading update"), maxValue: 100);
                     var progress = new Progress<SteamProgress>(report =>
                     {
                         task.Description = Markup.Escape(Describe(report));
@@ -312,8 +316,8 @@ internal static class Program
         }
 
         SelfUpdater.Apply(downloaded, exePath);
-        console.MarkupLineInterpolated($"[green]обновлено до {release.Version.ToString(3)}[/]: {exePath}");
-        console.MarkupLine("[grey]старая версия останется рядом как .old и удалится при следующем запуске[/]");
+        console.MarkupLine(Loc.T($"[green]обновлено до {release.Version.ToString(3)}[/]: {exePath}", $"[green]updated to {release.Version.ToString(3)}[/]: {exePath}"));
+        console.MarkupLine(Loc.T("[grey]старая версия останется рядом как .old и удалится при следующем запуске[/]", "[grey]the old build stays next to it as .old and is removed on the next run[/]"));
         return 0;
     }
 
@@ -327,7 +331,7 @@ internal static class Program
                 var separator = pair.IndexOf('=', StringComparison.Ordinal);
                 if (separator <= 0)
                 {
-                    console.MarkupLineInterpolated($"[red]ожидается KEY=VALUE, получено:[/] {pair}");
+                    console.MarkupLine(Loc.T($"[red]ожидается KEY=VALUE, получено:[/] {pair}", $"[red]expected KEY=VALUE, got:[/] {pair}"));
                     return 2;
                 }
 
@@ -337,7 +341,7 @@ internal static class Program
                     System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
                 if (property is null || !property.CanWrite)
                 {
-                    console.MarkupLineInterpolated($"[red]неизвестный параметр:[/] {name}");
+                    console.MarkupLine(Loc.T($"[red]неизвестный параметр:[/] {name}", $"[red]unknown setting:[/] {name}"));
                     return 2;
                 }
 
@@ -350,13 +354,13 @@ internal static class Program
             }
 
             var file = config.Save();
-            console.MarkupLineInterpolated($"сохранено: [cyan]{file}[/]");
-            console.MarkupLine("[grey]применить к кластеру: dstfarm init --force[/]");
+            console.MarkupLine(Loc.T($"сохранено: [cyan]{file}[/]", $"saved: [cyan]{file}[/]"));
+            console.MarkupLine(Loc.T("[grey]применить к кластеру: dstfarm init --force[/]", "[grey]apply to the cluster: dstfarm init --force[/]"));
         }
 
         var table = new Table().Border(TableBorder.Rounded);
-        table.AddColumn("параметр");
-        table.AddColumn("значение");
+        table.AddColumn(Loc.T("параметр", "setting"));
+        table.AddColumn(Loc.T("значение", "value"));
         foreach (var property in typeof(FarmConfig).GetProperties().Where(p => p.CanWrite))
         {
             var value = property.GetValue(config)?.ToString() ?? string.Empty;
@@ -371,23 +375,23 @@ internal static class Program
 
     private static int Help(IAnsiConsole console)
     {
-        console.MarkupLine("[bold]dstfarm[/] — выделенный сервер Don't Starve Together под идл-фарм дропов Klei");
+        console.MarkupLine(Loc.T("[bold]dstfarm[/] — выделенный сервер Don't Starve Together под идл-фарм дропов Klei", "[bold]dstfarm[/] — a Don't Starve Together dedicated server for idle Klei drop farming"));
         console.WriteLine();
-        console.MarkupLine("  [cyan]dstfarm[/]                    полноэкранный интерфейс (по умолчанию)");
-        console.MarkupLine("  [cyan]dstfarm install[/]            steamcmd + установка сервера (app 343050)");
-        console.MarkupLine("  [cyan]dstfarm init[/] [grey][[--force]][/]    сгенерировать кластер с фарм-настройками");
-        console.MarkupLine("  [cyan]dstfarm token <ТОКЕН>[/]      записать cluster token из аккаунта Klei");
-        console.MarkupLine("  [cyan]dstfarm start[/] [grey][[--detach]][/]  поднять сервер и держать живым");
-        console.MarkupLine("  [cyan]dstfarm stop[/]               штатная остановка с сохранением мира");
-        console.MarkupLine("  [cyan]dstfarm status[/]             состояние и накопленный аптайм");
-        console.MarkupLine("  [cyan]dstfarm update[/] [grey][[--check]][/]   обновить себя из релиза на GitHub");
+        console.MarkupLine(Loc.T("  [cyan]dstfarm[/]                    полноэкранный интерфейс (по умолчанию)", "  [cyan]dstfarm[/]                    full-screen interface (default)"));
+        console.MarkupLine(Loc.T("  [cyan]dstfarm install[/]            steamcmd + установка сервера (app 343050)", "  [cyan]dstfarm install[/]            steamcmd + server install (app 343050)"));
+        console.MarkupLine(Loc.T("  [cyan]dstfarm init[/] [grey][[--force]][/]    сгенерировать кластер с фарм-настройками", "  [cyan]dstfarm init[/] [grey][[--force]][/]    generate the cluster with farm settings"));
+        console.MarkupLine(Loc.T("  [cyan]dstfarm token <ТОКЕН>[/]      записать cluster token из аккаунта Klei", "  [cyan]dstfarm token <TOKEN>[/]      store the cluster token from your Klei account"));
+        console.MarkupLine(Loc.T("  [cyan]dstfarm start[/] [grey][[--detach]][/]  поднять сервер и держать живым", "  [cyan]dstfarm start[/] [grey][[--detach]][/]  start the server and keep it alive"));
+        console.MarkupLine(Loc.T("  [cyan]dstfarm stop[/]               штатная остановка с сохранением мира", "  [cyan]dstfarm stop[/]               graceful stop, the world is saved"));
+        console.MarkupLine(Loc.T("  [cyan]dstfarm status[/]             состояние и накопленный аптайм", "  [cyan]dstfarm status[/]             state and accumulated uptime"));
+        console.MarkupLine(Loc.T("  [cyan]dstfarm update[/] [grey][[--check]][/]   обновить себя из релиза на GitHub", "  [cyan]dstfarm update[/] [grey][[--check]][/]   update itself from the GitHub release"));
         console.MarkupLine("  [cyan]dstfarm config[/] [grey][[--set KEY=VALUE ...]][/]");
         return 0;
     }
 
     private static int Unknown(IAnsiConsole console, string command)
     {
-        console.MarkupLineInterpolated($"[red]неизвестная команда:[/] {command}");
+        console.MarkupLine(Loc.T($"[red]неизвестная команда:[/] {command}", $"[red]unknown command:[/] {command}"));
         Help(console);
         return 2;
     }

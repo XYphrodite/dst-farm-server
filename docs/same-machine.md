@@ -1,89 +1,90 @@
-# Сервер и клиент на одной машине
+# Server and client on one machine
 
-Это рабочий и самый частый сценарий: `dstfarm` держит выделенный сервер, а игра рядом
-подключается к нему клиентом. Ниже то, что отличается от «сервер на отдельной коробке».
+Русская версия: [ru/same-machine.md](ru/same-machine.md).
 
-## Как зайти на свой сервер
+This is the normal and most common setup: dstfarm holds the dedicated server while the game
+sits next to it and connects as a client. Here is what differs from a separate box.
 
-В игре: **Browse Games** → вкладка **LAN**. Сервер на той же машине всегда виден там,
-даже если в общем списке он ещё не появился. Пароль, если задан, спросят при входе.
+## Joining your own server
 
-Сервер не обязан быть в интернете, но `offline_cluster` должен оставаться `false` —
-иначе время в игре не засчитывается и дропы Klei не начисляются. `dstfarm` это гарантирует.
+In the game: **Browse Games** → the **LAN** tab. A server on the same machine always shows up
+there, even before it appears in the public list. A password, if set, is asked at join time.
 
-## Порты: главная засада
+The server does not have to be reachable from the internet, but `offline_cluster` must stay
+`false` — otherwise the time does not count and no Klei drops are earned. dstfarm guarantees that.
 
-Сервер занимает три UDP-порта на шард:
+## Ports: the main trap
 
-| Порт | Настройка | Зачем |
+The server takes three UDP ports per shard:
+
+| Port | Setting | Purpose |
 | --- | --- | --- |
-| 10999 | `ServerPort` | сам мир |
+| 10999 | `ServerPort` | the world itself |
 | 27018 | `MasterServerPort` | steam master |
 | 8768 | `AuthenticationPort` | steam auth |
 
-Проблема в том, что клиент Steam на этой же машине использует диапазон 27015–27050 под
-свои нужды. Если он успел занять 27018, сервер не поднимется, а в логе будет невнятная
-ошибка сокета.
+The problem is that the Steam client on the same machine uses part of the 27015–27050 range.
+If it grabbed 27018 first, the server will not come up and the log shows an opaque socket error.
 
-Проверить занятость:
+Check what is taken:
 
 ```
 dstfarm status
 ```
 
-Каждый порт показан отдельной строкой со статусом «свободен» или «занят». Супервизор
-предупреждает о занятых портах и в логе при старте.
+Every port is listed as free or in use. The supervisor also warns about busy ports in the log
+at startup.
 
-Если конфликт есть — сдвиньте порты:
+On a conflict, move the ports:
 
 ```
 dstfarm config --set MasterServerPort=27030 AuthenticationPort=8790
 dstfarm init --force
 ```
 
-То же самое доступно в интерфейсе: строки **Steam master port** и **Steam auth port**.
-Значения `ServerPort + 1`, `MasterServerPort + 1`, `AuthenticationPort + 1` уходят под
-шард пещер, если он включён, — оставляйте соседние номера свободными.
+The same rows exist in the interface: **Steam master port** and **Steam auth port**.
+`ServerPort + 1`, `MasterServerPort + 1` and `AuthenticationPort + 1` go to the caves shard
+when it is enabled, so leave the neighbouring numbers free.
 
-Пробрасывать порты на роутере при игре в одиночку не нужно вовсе. Брандмауэр Windows
-спросит разрешение один раз при первом запуске сервера — разрешите для частной сети.
+Nothing needs forwarding on the router when you play alone. The Windows firewall asks once at
+the first server start — allow it for private networks.
 
-## Нагрузка
+## Load
 
-Клиент игры тяжелее сервера, но вместе они дают заметный расход. Что помогает:
+The game client is heavier than the server, but together they add up. What helps:
 
-* **Пещеры выключены** (значение по умолчанию). Второй шард — это второй процесс сервера
-  с собственным миром, для аптайма он бесполезен.
-* **Мир `small`** (по умолчанию). На `huge` больше сущностей, больше работы каждый тик.
-* **Все угрозы отключены** (по умолчанию). Нет гончих и боссов — нет всплесков нагрузки
-  и нет риска, что AFK-персонажа съедят.
-* В настройках игры можно снизить графику и включить ограничение кадров — на фарм это
-  никак не влияет, а тепла и шума будет меньше.
+* **Caves disabled** (the default). A second shard is a second server process with its own
+  world, and it does nothing for uptime.
+* **A `small` world** (the default). `huge` means more entities and more work every tick.
+* **All threats disabled** (the default). No hounds and no bosses means no load spikes and no
+  risk of an idle character being eaten.
+* Lowering the graphics settings and capping the frame rate in the game changes nothing about
+  farming, but keeps the machine quieter.
 
-Оперативной памяти сервер с маленьким миром просит немного, но держите в уме, что клиент
-и сервер загружают ассеты независимо друг от друга.
+A small world does not ask for much memory, but keep in mind that the client and the server
+load their assets independently.
 
-## Оставить на ночь
+## Leaving it overnight
 
-Сервер живёт сам: `dstfarm start --detach` или клавиша `S` в интерфейсе, плюс автоперезапуск
-после падения. Но дропы идут клиенту, поэтому игру закрывать нельзя — персонаж должен
-оставаться в мире.
+The server takes care of itself: `dstfarm start --detach` or the `S` key, plus an automatic
+restart after a crash. But the drops go to the client, so the game must stay open — the
+character has to remain in the world.
 
-Проверьте, что машина не уходит в сон: Параметры → Система → Питание → Экран и спящий режим,
-переход в сон должен стоять «Никогда». Отключение экрана фарму не мешает.
+Make sure the machine does not fall asleep: Settings → System → Power → Screen and sleep,
+with sleep set to Never. Turning the display off does not affect farming.
 
-Полезно включить плановый перезапуск в тихий час — сервер сохранится и поднимется заново:
+A scheduled restart during a quiet hour is worth enabling — the server saves and comes back up:
 
 ```
 dstfarm config --set DailyRestartHour=5
 ```
 
-После него клиента придётся подключить заново: сервер перезапускается, игрок из мира выпадает.
+After it the client has to reconnect: the server restarts and the player drops out of the world.
 
-## Обновления игры
+## Game updates
 
-Когда Klei выкатывает патч, клиент обновляется через Steam, а сервер — нет. Версии разъедутся,
-и зайти не получится. Лечится так:
+When Klei ships a patch, the client updates through Steam and the server does not. The versions
+diverge and joining fails. The cure:
 
 ```
 dstfarm stop
@@ -91,4 +92,4 @@ dstfarm install
 dstfarm start --detach
 ```
 
-Саму утилиту обновляет `dstfarm update` — она независима от версии игры.
+dstfarm itself is updated by `dstfarm update`, independently of the game version.

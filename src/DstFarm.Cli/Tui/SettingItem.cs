@@ -1,3 +1,4 @@
+using DstFarm.Core;
 namespace DstFarm.Cli.Tui;
 
 /// <summary>Одна строка панели настроек: как показать и что делать по стрелкам.</summary>
@@ -28,7 +29,7 @@ internal sealed class SettingItem
     public void Cycle(int direction) => cycle?.Invoke(direction);
 
     public static SettingItem Flag(string label, Func<bool> get, Action<bool> set) =>
-        new(label, () => get() ? "[green]вкл[/]" : "[grey]выкл[/]", _ => set(!get()), null, null);
+        new(label, () => get() ? Loc.T("[green]вкл[/]", "[green]on[/]") : Loc.T("[grey]выкл[/]", "[grey]off[/]"), _ => set(!get()), null, null);
 
     public static SettingItem Choice(string label, IReadOnlyList<string> values, Func<string> get, Action<string> set) =>
         new(

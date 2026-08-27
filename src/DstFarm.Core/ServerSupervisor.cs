@@ -13,6 +13,9 @@ public sealed class ServerSupervisor : IDisposable
     private readonly Dictionary<string, ShardRunner> runners = [];
     private readonly Lock sync = new();
 
+    /// <summary>Здоровый сервер доходит до запуска мира за считаные секунды.</summary>
+    private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(90);
+
     public ServerSupervisor(FarmConfig config)
     {
         this.config = config ?? throw new ArgumentNullException(nameof(config));
@@ -87,6 +90,8 @@ public sealed class ServerSupervisor : IDisposable
                     }
                 }
 
+                WarnAboutStalledShards();
+
                 if (File.Exists(StopFlagFile))
                 {
                     Log?.Invoke(Loc.T("получен стоп-сигнал", "stop signal received"));
@@ -115,6 +120,34 @@ public sealed class ServerSupervisor : IDisposable
             File.Delete(PidFile);
             File.Delete(StopFlagFile);
             Log?.Invoke(Loc.T("сервер остановлен", "server stopped"));
+        }
+    }
+
+    /// <summary>
+    /// Сервер умеет молча висеть после авторизации, так и не начав поднимать мир.
+    /// Молчание выглядит как «всё хорошо», поэтому говорим об этом прямо.
+    /// </summary>
+    private void WarnAboutStalledShards()
+    {
+        List<ShardRunner> current;
+        lock (sync)
+            current = [.. runners.Values];
+
+        foreach (var runner in current)
+        {
+            if (runner.WorldStarted || runner.StallWarned || !runner.Running)
+                continue;
+            if (DateTimeOffset.Now - runner.StartedAt < StallTimeout)
+                continue;
+
+            runner.StallWarned = true;
+            Log?.Invoke(Loc.T(
+                $"{runner.Shard}: прошло {StallTimeout.TotalSeconds:F0} с, а мир так и не начал подниматься. "
+                + "Сервер жив, но ждёт ответа от бэкенда Klei — проверьте, что исходящие соединения не режет VPN, "
+                + "прокси или брандмауэр.",
+                $"{runner.Shard}: {StallTimeout.TotalSeconds:F0}s in and the world has not started coming up. "
+                + "The server is alive but waiting on the Klei backend — check that a VPN, proxy or firewall "
+                + "is not blocking its outbound connections."));
         }
     }
 
@@ -229,6 +262,7 @@ public sealed class ServerSupervisor : IDisposable
                     line =>
                     {
                         tailAlive = true;
+                        Observe(line);
                         log($"[{Shard}] {line}");
                     },
                     TimeSpan.FromMilliseconds(500),
@@ -237,9 +271,19 @@ public sealed class ServerSupervisor : IDisposable
                 CancellationToken.None);
         }
 
+        /// <summary>Эту строку игра печатает, когда действительно начинает поднимать мир.</summary>
+        private const string WorldStartMarker = "Starting Dedicated Server Game";
+
         public string Shard { get; }
 
         public int Restarts { get; }
+
+        public DateTimeOffset StartedAt { get; } = DateTimeOffset.Now;
+
+        /// <summary>Дошёл ли сервер до запуска мира: до этого он может молча висеть.</summary>
+        public bool WorldStarted { get; private set; }
+
+        public bool StallWarned { get; set; }
 
         public int? ProcessId => Running ? process.Id : null;
 
@@ -317,8 +361,15 @@ public sealed class ServerSupervisor : IDisposable
                 return;
             lock (writeSync)
                 logWriter.WriteLine(line);
+            Observe(line);
             if (!tailAlive)
                 log($"[{Shard}] {line}");
+        }
+
+        private void Observe(string line)
+        {
+            if (!WorldStarted && line.Contains(WorldStartMarker, StringComparison.Ordinal))
+                WorldStarted = true;
         }
 
 

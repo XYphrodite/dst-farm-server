@@ -24,6 +24,19 @@ public static class ClusterWriter
         ("earthquakes", "never"),
         ("wildfires", "never"),
         ("frograin", "never"),
+        // Перегрев и переохлаждение тоже убивают AFK-персонажа.
+        ("temperaturedamage", "nonlethal"),
+    ];
+
+    /// <summary>
+    /// Отдельной настройки «рассудок» в игре нет: за него отвечают темнота и порождаемые
+    /// низким рассудком твари. Ключи и значения сверены с scripts/map/customize.lua.
+    /// </summary>
+    private static readonly (string Key, string Value)[] SanityOverrides =
+    [
+        ("darkness", "nonlethal"),
+        ("shadowcreatures", "never"),
+        ("brightmarecreatures", "never"),
     ];
 
     /// <summary>
@@ -154,10 +167,11 @@ public static class ClusterWriter
     {
         var overrides = new List<(string Key, string Value)> { ("world_size", config.WorldSize) };
 
+        // "none" игра не понимает: допустимы только nonlethal и default.
         if (config.NoHunger)
-            overrides.Add(("hunger", "none"));
+            overrides.Add(("hunger", "nonlethal"));
         if (config.NoSanityDrain)
-            overrides.Add(("sanity", "none"));
+            overrides.AddRange(SanityOverrides);
 
         if (!caves)
         {
@@ -165,7 +179,9 @@ public static class ClusterWriter
                 overrides.Add(("day", "onlyday"));
             if (config.EternalAutumn)
             {
-                overrides.Add(("season_start", "autumn"));
+                // season_start принимает только default/winter/spring/summer,
+                // а осень и так стартовый сезон.
+                overrides.Add(("season_start", "default"));
                 overrides.Add(("autumn", "verylongseason"));
                 overrides.Add(("winter", "noseason"));
                 overrides.Add(("spring", "noseason"));
@@ -178,6 +194,7 @@ public static class ClusterWriter
         else if (config.DisableThreats)
         {
             overrides.Add(("earthquakes", "never"));
+            overrides.Add(("temperaturedamage", "nonlethal"));
         }
 
         var builder = new StringBuilder();

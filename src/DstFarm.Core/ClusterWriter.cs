@@ -26,6 +26,47 @@ public static class ClusterWriter
         ("frograin", "never"),
     ];
 
+    /// <summary>
+    /// Совпадают ли файлы кластера с текущими настройками. Нужен, чтобы интерфейс не показывал
+    /// значения, по которым сервер на самом деле не работает.
+    /// </summary>
+    public static bool MatchesDisk(FarmConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        if (!SameContent(Path.Combine(config.ClusterPath, "cluster.ini"), BuildClusterIni(config)))
+            return false;
+
+        foreach (var shard in config.Shards)
+        {
+            var isCaves = shard == "Caves";
+            var directory = Path.Combine(config.ClusterPath, shard);
+            if (!SameContent(Path.Combine(directory, "server.ini"), BuildServerIni(config, isCaves)))
+                return false;
+            if (!SameContent(Path.Combine(directory, "worldgenoverride.lua"), BuildWorldGen(config, isCaves)))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool SameContent(string path, string expected)
+    {
+        if (!File.Exists(path))
+            return false;
+        try
+        {
+            return string.Equals(
+                File.ReadAllText(path).ReplaceLineEndings(),
+                expected.ReplaceLineEndings(),
+                StringComparison.Ordinal);
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
     public static IReadOnlyList<string> Write(FarmConfig config, bool overwrite, Action<string>? log = null)
     {
         ArgumentNullException.ThrowIfNull(config);

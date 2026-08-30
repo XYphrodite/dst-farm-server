@@ -126,7 +126,7 @@ Accepted values: `auto`, `ru`, `en`.
 | `dstfarm token <TOKEN>` | writes `cluster_token.txt` |
 | `dstfarm start [--detach]` | supervisor: starts the shards, restarts them after a crash |
 | `dstfarm stop` | graceful stop through `c_shutdown(true)` — the world is saved |
-| `dstfarm status` | state and accumulated uptime |
+| `dstfarm status` | state, uptime, ports and which world protections actually applied |
 | `dstfarm update [--check]` | update itself from the GitHub release |
 | `dstfarm reset-world [--yes]` | delete the world so it is generated again with the current settings |
 | `dstfarm config [--set KEY=VALUE ...]` | show or change settings |

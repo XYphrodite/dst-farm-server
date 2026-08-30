@@ -245,7 +245,25 @@ internal static class Program
             table.AddRow(Loc.T($"порт {port.Port}", $"port {port.Port}"), $"{port.Purpose} — {state}");
         }
 
+        var protections = WorldProtections.Inspect(config);
+        table.AddRow(Loc.T("защиты мира", "world protections"), DescribeProtections(protections));
+
         console.Write(table);
+
+        if (protections.LogFound && !protections.NothingObserved && protections.Missing.Count > 0)
+        {
+            console.MarkupLine(Loc.T(
+                "[yellow]Мир создан без этих настроек — пересоздайте его:[/] dstfarm reset-world --yes",
+                "[yellow]The world was created without these settings — regenerate it:[/] dstfarm reset-world --yes"));
+
+            const int shown = 6;
+            foreach (var check in protections.Missing.Take(shown))
+                console.MarkupLineInterpolated($"  {check.Key}: {Loc.T("ожидалось", "expected")} {check.Expected}, {Loc.T("в мире", "in the world")} {check.Actual ?? Loc.T("нет", "absent")}");
+
+            var rest = protections.Missing.Count - shown;
+            if (rest > 0)
+                console.MarkupLine(Loc.T($"  [grey]и ещё {rest}[/]", $"  [grey]and {rest} more[/]"));
+        }
 
         var conflicts = running ? [] : PortProbe.Conflicts(config);
         if (conflicts.Count > 0)
@@ -363,6 +381,23 @@ internal static class Program
             "мир будет создан заново при следующем запуске, уже с текущими настройками",
             "the world will be created from scratch on the next start, with the current settings"));
         return 0;
+    }
+
+    /// <summary>Настройки вшиваются в мир при генерации, поэтому файл и мир легко расходятся.</summary>
+    private static string DescribeProtections(ProtectionReport report)
+    {
+        if (!report.LogFound)
+            return Loc.T("[grey]сервер ещё не запускался[/]", "[grey]the server has not run yet[/]");
+        if (report.Total == 0)
+            return Loc.T("[grey]нечего проверять[/]", "[grey]nothing to check[/]");
+        if (report.NothingObserved)
+            return Loc.T("[yellow]мир ещё не создавался[/]", "[yellow]no world has been generated yet[/]");
+        if (report.AllApplied)
+            return Loc.T($"[green]применены все {report.Total}[/]", $"[green]all {report.Total} applied[/]");
+
+        return Loc.T(
+            $"[yellow]{report.Applied} из {report.Total}, мир создан раньше правок[/]",
+            $"[yellow]{report.Applied} of {report.Total}, the world predates the changes[/]");
     }
 
     private static int ShowConfig(IAnsiConsole console, FarmConfig config, string[] args)

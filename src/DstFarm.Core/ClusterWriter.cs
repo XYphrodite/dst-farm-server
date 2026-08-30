@@ -187,8 +187,11 @@ public static class ClusterWriter
         return builder.ToString();
     }
 
-    internal static string BuildWorldGen(FarmConfig config, bool caves)
+    /// <summary>Что мы просим у генерации мира. Один источник правды для файла и для сверки.</summary>
+    public static IReadOnlyList<(string Key, string Value)> BuildOverrides(FarmConfig config, bool caves)
     {
+        ArgumentNullException.ThrowIfNull(config);
+
         var overrides = new List<(string Key, string Value)> { ("world_size", config.WorldSize) };
 
         // "none" игра не понимает: допустимы только nonlethal и default.
@@ -220,6 +223,13 @@ public static class ClusterWriter
             overrides.Add(("earthquakes", "never"));
             overrides.Add(("temperaturedamage", "nonlethal"));
         }
+
+        return overrides;
+    }
+
+    internal static string BuildWorldGen(FarmConfig config, bool caves)
+    {
+        var overrides = BuildOverrides(config, caves);
 
         var builder = new StringBuilder();
         builder.AppendLine("return {");

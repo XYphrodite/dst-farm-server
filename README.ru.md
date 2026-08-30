@@ -128,7 +128,7 @@ dstfarm config --set Language=en
 | `dstfarm token <ТОКЕН>` | записывает `cluster_token.txt` |
 | `dstfarm start [--detach]` | супервизор: запускает шарды, перезапускает при падении |
 | `dstfarm stop` | штатная остановка через `c_shutdown(true)` — мир сохраняется |
-| `dstfarm status` | состояние и накопленный аптайм |
+| `dstfarm status` | состояние, аптайм, порты и какие защиты мира реально применились |
 | `dstfarm update [--check]` | обновить себя из релиза на GitHub |
 | `dstfarm reset-world [--yes]` | удалить мир, чтобы он создался заново с текущими настройками |
 | `dstfarm config [--set KEY=VALUE ...]` | показать или поменять настройки |

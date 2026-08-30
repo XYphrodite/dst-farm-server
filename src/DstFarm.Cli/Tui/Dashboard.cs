@@ -197,6 +197,11 @@ internal sealed class Dashboard
                 editingBuffer = null;
                 Message = Loc.T("изменение отменено", "edit cancelled");
                 return true;
+            case ConsoleKey.Backspace when key.Modifiers.HasFlag(ConsoleModifiers.Control):
+            case ConsoleKey.Delete:
+                // Токен длинный: стирать его по символу — издевательство.
+                editingBuffer = string.Empty;
+                return true;
             case ConsoleKey.Backspace:
                 if (editingBuffer!.Length > 0)
                     editingBuffer = editingBuffer[..^1];
@@ -230,7 +235,9 @@ internal sealed class Dashboard
                 if (settings[selected].IsEditable)
                 {
                     editingBuffer = settings[selected].ReadText?.Invoke() ?? string.Empty;
-                    Message = Loc.T("введите значение, Enter — применить, Esc — отмена", "type a value, Enter to apply, Esc to cancel");
+                    Message = Loc.T(
+                        "введите значение, Del — очистить, Enter — применить, Esc — отмена",
+                        "type a value, Del clears, Enter applies, Esc cancels");
                 }
                 else
                 {
@@ -579,7 +586,9 @@ internal sealed class Dashboard
     private string FooterMarkup()
     {
         if (editingBuffer is not null)
-            return Loc.T("[cyan]Enter[/] применить   [cyan]Esc[/] отмена", "[cyan]Enter[/] apply   [cyan]Esc[/] cancel");
+            return Loc.T(
+                "[cyan]Del[/] очистить   [cyan]Enter[/] применить   [cyan]Esc[/] отмена",
+                "[cyan]Del[/] clear   [cyan]Enter[/] apply   [cyan]Esc[/] cancel");
         var toggle = supervisorTask is not null ? Loc.T("остановить", "stop") : Loc.T("запустить", "start");
         return Loc.T($"[cyan]стрелки[/] выбор/значение   [cyan]Enter[/] правка   [cyan]S[/] {toggle}   ", $"[cyan]arrows[/] select/change   [cyan]Enter[/] edit   [cyan]S[/] {toggle}   ") +
                Loc.T($"[cyan]I[/] установить сервер   [cyan]G[/] применить   [cyan]U[/] обновить   [cyan]Q[/] выход", $"[cyan]I[/] install server   [cyan]G[/] apply   [cyan]U[/] update   [cyan]Q[/] quit");

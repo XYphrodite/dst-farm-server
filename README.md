@@ -144,6 +144,8 @@ The world (`worldgenoverride.lua`, Master shard):
   and the dark cannot *kill* an idle character. The meters still drain: the game has no setting
   that stops hunger or sanity from falling, only ones that make the result harmless;
 * hounds, hunts, every raid boss, lightning, earthquakes and wildfires are set to `never`;
+* the whole hostile-creature group is off too — frogs, wasps, mosquitos, spiders, merms, bats
+  and the rest. Bosses are not what finishes off an idle character;
 * `world_size = "small"` — fewer entities, less CPU over a long uptime.
 
 The cluster (`cluster.ini`):

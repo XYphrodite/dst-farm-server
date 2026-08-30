@@ -29,6 +29,24 @@ public static class ClusterWriter
     ];
 
     /// <summary>
+    /// Группа «враждебные существа» из scripts/map/customize.lua, наземная часть.
+    /// Боссы боссами, а AFK-персонажа догрызают именно жабы, пчёлы и пауки.
+    /// </summary>
+    private static readonly string[] HostileSurface =
+    [
+        "lureplants", "hound_mounds", "mosquitos", "sharks", "squid", "wasps", "frogs",
+        "walrus_setting", "cookiecutters", "pirateraids", "merms", "spiders_setting",
+        "spider_warriors", "bats_setting",
+    ];
+
+    /// <summary>Та же группа, пещерная часть.</summary>
+    private static readonly string[] HostileCaves =
+    [
+        "merms", "spiders_setting", "spider_warriors", "bats_setting", "nightmarecreatures",
+        "spider_hider", "spider_spitter", "spider_dropper", "molebats", "itemmimics", "chest_mimics",
+    ];
+
+    /// <summary>
     /// Отдельной настройки «рассудок» в игре нет: за него отвечают темнота и порождаемые
     /// низким рассудком твари. Ключи и значения сверены с scripts/map/customize.lua.
     /// </summary>
@@ -216,12 +234,16 @@ public static class ClusterWriter
             }
 
             if (config.DisableThreats)
+            {
                 overrides.AddRange(ThreatOverrides);
+                overrides.AddRange(HostileSurface.Select(key => (key, "never")));
+            }
         }
         else if (config.DisableThreats)
         {
             overrides.Add(("earthquakes", "never"));
             overrides.Add(("temperaturedamage", "nonlethal"));
+            overrides.AddRange(HostileCaves.Select(key => (key, "never")));
         }
 
         return overrides;

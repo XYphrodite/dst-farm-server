@@ -28,6 +28,8 @@ internal sealed class Dashboard
     private DateTimeOffset messageAt = DateTimeOffset.MinValue;
     private bool clusterMatches = true;
     private DateTimeOffset clusterCheckedAt = DateTimeOffset.MinValue;
+    private ProtectionReport? protections;
+    private DateTimeOffset protectionsCheckedAt = DateTimeOffset.MinValue;
     private bool busy;
     private SteamProgress? download;
 
@@ -99,6 +101,18 @@ internal sealed class Dashboard
         }
 
         return clusterMatches;
+    }
+
+    /// <summary>Лог шарда весит сотни килобайт, а панель перерисовывается несколько раз в секунду.</summary>
+    private ProtectionReport Protections()
+    {
+        if (protections is null || DateTimeOffset.Now - protectionsCheckedAt > TimeSpan.FromSeconds(5))
+        {
+            protections = WorldProtections.Inspect(config);
+            protectionsCheckedAt = DateTimeOffset.Now;
+        }
+
+        return protections;
     }
 
     private void Change(Action apply)
@@ -580,6 +594,15 @@ internal sealed class Dashboard
                     ? Loc.T("[green]свободны[/]", "[green]free[/]")
                     : Loc.T($"[red]занят {string.Join(", ", conflicts.Select(c => c.Port))}[/]", $"[red]in use: {string.Join(", ", conflicts.Select(c => c.Port))}[/]"));
         }
+
+        var protections = Protections();
+        table.AddRow(
+            Loc.T("защиты мира", "protections"),
+            !protections.LogFound
+                ? Loc.T("[grey]нет данных[/]", "[grey]no data[/]")
+                : protections.AllApplied
+                    ? Loc.T($"[green]все {protections.Total}[/]", $"[green]all {protections.Total}[/]")
+                    : $"[yellow]{protections.Applied}/{protections.Total}[/]");
 
         var current = supervisor?.StartedAt is { } started
             ? DateTimeOffset.Now - started

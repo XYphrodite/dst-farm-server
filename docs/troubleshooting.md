@@ -58,6 +58,14 @@ Check in order:
 
 More in [farming.md](farming.md).
 
+## Which protections is the world actually running with
+
+Settings are baked into the world when it is generated, so the config on disk and the running
+world can disagree. `dstfarm status` reads what the server itself reported and shows a
+`world protections` row: how many of the expected overrides the world really applied, and
+which ones are missing. If they are missing, the world predates the settings —
+`dstfarm reset-world --yes` regenerates it.
+
 ## The character keeps dying
 
 World settings apply at **generation** time. If the world was already created with the old

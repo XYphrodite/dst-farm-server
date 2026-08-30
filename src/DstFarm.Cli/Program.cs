@@ -42,6 +42,7 @@ internal static class Program
                 "reset-world" => ResetWorld(console, config, args),
                 "console" => SendConsole(console, config, args),
                 "uninstall-server" => UninstallServer(console, config, args),
+                "uninstall" => Uninstall(console, config, args),
                 "config" => ShowConfig(console, config, args),
                 "--help" or "-h" or "help" => Help(console),
                 _ => Unknown(console, command),
@@ -483,6 +484,63 @@ internal static class Program
         return 0;
     }
 
+    private static int Uninstall(IAnsiConsole console, FarmConfig config, string[] args)
+    {
+        if (new SupervisorControl(config).IsRunning)
+        {
+            console.MarkupLine(Loc.T(
+                "[red]сервер запущен:[/] сначала dstfarm stop",
+                "[red]the server is running:[/] run dstfarm stop first"));
+            return 2;
+        }
+
+        var withCluster = args.Contains("--all", StringComparer.OrdinalIgnoreCase);
+        var targets = Uninstaller.Plan(config, withCluster);
+        var exePath = Environment.ProcessPath;
+        var total = targets.Sum(t => t.Bytes);
+
+        if (!args.Contains("--yes", StringComparer.OrdinalIgnoreCase))
+        {
+            console.MarkupLine(Loc.T("[yellow]Будет удалено:[/]", "[yellow]This will be removed:[/]"));
+            foreach (var target in targets)
+                console.MarkupLineInterpolated($"  {target.Path}  [grey]{SteamProgress.Format(target.Bytes)}[/]");
+            if (exePath is not null)
+                console.MarkupLineInterpolated($"  {exePath}");
+
+            console.MarkupLineInterpolated($"{Loc.T("освободится", "frees up")}: {SteamProgress.Format(total)}");
+            console.MarkupLine(withCluster
+                ? Loc.T("[red]Вместе с миром и токеном.[/]", "[red]Including the world and the token.[/]")
+                : Loc.T(
+                    "Мир и токен останутся; чтобы снести и их, добавьте [cyan]--all[/].",
+                    "The world and the token stay; add [cyan]--all[/] to remove those too."));
+            console.MarkupLine(Loc.T("Повторите с [cyan]--yes[/].", "Repeat with [cyan]--yes[/]."));
+            return 1;
+        }
+
+        foreach (var target in Uninstaller.RemovePlanned(config, withCluster))
+            console.MarkupLineInterpolated($"[grey]удалено:[/] {target.Path}");
+
+        if (exePath is { } exe && Path.GetDirectoryName(exe) is { } directory)
+        {
+            var userPath = Environment.GetEnvironmentVariable("Path", EnvironmentVariableTarget.User);
+            var cleaned = Uninstaller.RemoveFromPath(userPath, directory);
+            if (!string.Equals(cleaned, userPath, StringComparison.Ordinal))
+            {
+                Environment.SetEnvironmentVariable("Path", cleaned, EnvironmentVariableTarget.User);
+                console.MarkupLine(Loc.T("каталог убран из PATH", "the directory was dropped from PATH"));
+            }
+
+            Uninstaller.ScheduleSelfDelete(exe);
+            console.MarkupLine(Loc.T(
+                "[grey]сам exe удалится через пару секунд после выхода[/]",
+                "[grey]the exe removes itself a couple of seconds after this process exits[/]"));
+        }
+
+        console.MarkupLineInterpolated($"[green]{Loc.T("освобождено", "freed")}: {SteamProgress.Format(total)}[/]");
+        console.MarkupLine(Loc.T("Спасибо и удачного фарма.", "Thanks, and good luck out there."));
+        return 0;
+    }
+
     private static int ShowConfig(IAnsiConsole console, FarmConfig config, string[] args)
     {
         var setIndex = Array.FindIndex(args, a => a.Equals("--set", StringComparison.OrdinalIgnoreCase));
@@ -546,6 +604,9 @@ internal static class Program
         console.MarkupLine(Loc.T("  [cyan]dstfarm start[/] [grey][[--detach]][/]  поднять сервер и держать живым", "  [cyan]dstfarm start[/] [grey][[--detach]][/]  start the server and keep it alive"));
         console.MarkupLine(Loc.T("  [cyan]dstfarm stop[/]               штатная остановка с сохранением мира", "  [cyan]dstfarm stop[/]               graceful stop, the world is saved"));
         console.MarkupLine(Loc.T("  [cyan]dstfarm status[/]             состояние и накопленный аптайм", "  [cyan]dstfarm status[/]             state and accumulated uptime"));
+        console.MarkupLine(Loc.T(
+            "  [cyan]dstfarm uninstall[/] [grey][[--yes]] [[--all]][/]         удалить dstfarm целиком",
+            "  [cyan]dstfarm uninstall[/] [grey][[--yes]] [[--all]][/]         remove dstfarm completely"));
         console.MarkupLine(Loc.T(
             "  [cyan]dstfarm uninstall-server[/] [grey][[--yes]] [[--all]][/]  удалить сервер и освободить место",
             "  [cyan]dstfarm uninstall-server[/] [grey][[--yes]] [[--all]][/]  remove the server and free the space"));

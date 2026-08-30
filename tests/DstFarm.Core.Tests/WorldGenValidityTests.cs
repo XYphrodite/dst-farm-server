@@ -44,6 +44,8 @@ public sealed class WorldGenValidityTests
         ["earthquakes"] = Frequency,
         ["wildfires"] = Frequency,
         ["frograin"] = Frequency,
+        ["weather"] = [.. Frequency, "squall"],
+        ["acidrain_enabled"] = ["none", "always"],
         ["lureplants"] = Frequency,
         ["hound_mounds"] = Frequency,
         ["mosquitos"] = Frequency,
@@ -138,6 +140,28 @@ public sealed class WorldGenValidityTests
         var lua = ClusterWriter.BuildWorldGen(new FarmConfig(), caves: false);
 
         Assert.DoesNotContain("sanity = ", lua, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Дождь не убивает, но мочит: промокший персонаж мёрзнет и теряет рассудок.
+    /// weather = never — единственный ключ, выключающий осадки совсем.
+    /// </summary>
+    [Fact]
+    public void RainIsOffOnBothShards()
+    {
+        var config = new FarmConfig { EnableCaves = true };
+
+        Assert.Contains("weather = \"never\"", ClusterWriter.BuildWorldGen(config, caves: false), StringComparison.Ordinal);
+        Assert.Contains("weather = \"never\"", ClusterWriter.BuildWorldGen(config, caves: true), StringComparison.Ordinal);
+    }
+
+    /// <summary>Кислотный дождь в пещерах включён по умолчанию и наносит урон.</summary>
+    [Fact]
+    public void AcidRainIsOffInTheCaves()
+    {
+        var caves = ClusterWriter.BuildWorldGen(new FarmConfig { EnableCaves = true }, caves: true);
+
+        Assert.Contains("acidrain_enabled = \"none\"", caves, StringComparison.Ordinal);
     }
 
     [Fact]

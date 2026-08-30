@@ -24,7 +24,7 @@ The server also has to be restarted: it reads the configs at startup.
 | `EternalAutumn` | `true` | eternal autumn: `autumn = "verylongseason"`, other seasons `noseason` |
 | `NoHunger` | `true` | `hunger = "nonlethal"` — starving cannot kill. The hunger meter still drains, nothing in the game stops that |
 | `NoSanityDrain` | `true` | `darkness = "nonlethal"`, `shadowcreatures` and `brightmarecreatures` set to `never` — the dark and the shadows cannot hurt you. Sanity itself still drains; the game has no setting for that |
-| `DisableThreats` | `true` | hounds, hunts, every raid boss, lightning, earthquakes, wildfires **and the entire hostile-creature group** (frogs, wasps, mosquitos, spiders, merms, bats, and the cave ones) set to `never` |
+| `DisableThreats` | `true` | hounds, hunts, every raid boss, lightning, earthquakes, wildfires, rain (`weather`) and cave acid rain **and the entire hostile-creature group** (frogs, wasps, mosquitos, spiders, merms, bats, and the cave ones) set to `never` |
 | `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Smaller world, less CPU |
 | `GameMode` | `endless` | `endless` does not end the world on death. `survival` and `wilderness` also exist |
 | `EnableCaves` | `false` | second shard. Doubles the load and is useless for uptime |

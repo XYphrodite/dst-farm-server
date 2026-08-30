@@ -147,7 +147,7 @@ The world (`worldgenoverride.lua`, Master shard):
 * `hunger = "nonlethal"` plus `darkness`, `shadowcreatures` and `brightmarecreatures` — hunger
   and the dark cannot *kill* an idle character. The meters still drain: the game has no setting
   that stops hunger or sanity from falling, only ones that make the result harmless;
-* hounds, hunts, every raid boss, lightning, earthquakes and wildfires are set to `never`;
+* hounds, hunts, every raid boss, lightning, earthquakes, wildfires and rain are set to `never`;
 * **both** hostile-creature groups are off — the one that decides what gets placed on the map
   (clockworks, tentacles, spider dens, tallbirds, walruses, killer bees) and the one that governs
   behaviour (frogs, wasps, mosquitos, merms, bats). Bosses are not what finishes off an idle character;

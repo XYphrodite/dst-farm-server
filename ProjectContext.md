@@ -27,7 +27,7 @@ actually doing — all from a full-screen terminal interface or plain commands.
 |-------|-----------|-------|
 | Application | .NET 10 console (`net10.0`) | `dstfarm.exe`, self-contained single file in Release |
 | Terminal UI | Spectre.Console 0.57.2 | Alternate screen buffer + `Live` display |
-| Tests | xUnit 2.9.3 | 167 tests, all in `DstFarm.Core.Tests` |
+| Tests | xUnit 2.9.3 | 175 tests, all in `DstFarm.Core.Tests` |
 | Managed server | DST Dedicated Server, Steam app `343050` | Installed via SteamCMD, anonymous login |
 | Distribution | GitHub Releases + `install.ps1` | SHA-256 published in the release notes |
 
@@ -161,7 +161,7 @@ capability in this tool is built on those two surfaces plus its standard input.
 ### 3. **DstFarm.Core.Tests**
 **Type**: xUnit test project
 **Location**: `tests/DstFarm.Core.Tests/`
-**Purpose**: 167 tests over config generation, the farm profile, log parsing and the
+**Purpose**: 175 tests over config generation, the farm profile, log parsing and the
 destructive paths.
 
 **Notable coverage**:
@@ -185,7 +185,7 @@ What the generated world does, and why. Keys verified against `scripts/map/custo
 | `hunger` | `nonlethal` | Starving cannot kill. **The meter still drains** — the game has no setting that stops it |
 | `darkness`, `shadowcreatures`, `brightmarecreatures` | `nonlethal` / `never` | There is no `sanity` world setting; these are what actually threaten a low-sanity character |
 | `temperaturedamage` | `nonlethal` | Belt and braces with eternal autumn |
-| Raid bosses, hounds, hunts, lightning, earthquakes, wildfires | `never` | Scheduled threats |
+| Raid bosses, hounds, hunts, lightning, earthquakes, wildfires, `weather` | `never` | Scheduled threats and rain |
 | Hostile creatures, **both groups** | `never` | Behaviour *and* worldgen placement — clockworks, tentacles, spider dens, frogs, wasps, merms, tallbirds |
 | `world_size` | `small` | Fewer entities, less CPU over a long uptime |
 | `game_mode` | `endless` | Death does not end the world |
@@ -279,7 +279,7 @@ dst-farm-server/
 │   └── DstFarm.Cli/             # commands + full-screen interface
 │       └── Tui/                 # Dashboard, SettingItem, LogBuffer
 ├── tests/
-│   └── DstFarm.Core.Tests/      # 167 xUnit tests
+│   └── DstFarm.Core.Tests/      # 175 xUnit tests
 ├── docs/                        # English documentation
 │   └── ru/                      # Russian documentation
 ├── install.ps1                  # one-command installer (ASCII, no BOM)
@@ -371,7 +371,7 @@ dst-farm-server/
 
 **Document Version**: v1.0
 **Last Updated**: 2026-08-30
-**Application Version**: v0.4.5
+**Application Version**: v0.4.9
 **Status**: Active
 **Repository**: `c:\Repos\dst-farm-server` (branch `main`) — https://github.com/XYphrodite/dst-farm-server
 **Authoring style**: per [ProjectContext_UserRules.md](../Reborn/desktop-client/ProjectContext_UserRules.md)

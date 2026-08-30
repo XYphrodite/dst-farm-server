@@ -24,7 +24,7 @@ English version: [../settings.md](../settings.md).
 | `EternalAutumn` | `true` | вечная осень: `autumn = "verylongseason"`, остальные сезоны `noseason` |
 | `NoHunger` | `true` | `hunger = "nonlethal"` — голод не убивает. Шкала сытости при этом падает: остановить её игра не умеет |
 | `NoSanityDrain` | `true` | `darkness = "nonlethal"`, а `shadowcreatures` и `brightmarecreatures` в `never` — темнота и тени не вредят. Сам рассудок при этом падает, настройки для него в игре нет |
-| `DisableThreats` | `true` | гончие, охота, все рейдовые боссы, молнии, землетрясения, пожары **и вся группа враждебных существ** (жабы, осы, комары, пауки, мермы, летучие мыши, пещерные твари) — `never` |
+| `DisableThreats` | `true` | гончие, охота, все рейдовые боссы, молнии, землетрясения, пожары, дождь (`weather`) и кислотный дождь пещер **и вся группа враждебных существ** (жабы, осы, комары, пауки, мермы, летучие мыши, пещерные твари) — `never` |
 | `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Меньше мир — меньше CPU |
 | `GameMode` | `endless` | `endless` не завершает мир при смерти. Ещё есть `survival`, `wilderness` |
 | `EnableCaves` | `false` | второй шард. Удваивает нагрузку, для аптайма не нужен |

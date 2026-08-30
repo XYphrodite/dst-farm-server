@@ -126,7 +126,7 @@ Accepted values: `auto`, `ru`, `en`.
 | `dstfarm token <TOKEN>` | writes `cluster_token.txt` |
 | `dstfarm start [--detach]` | supervisor: starts the shards, restarts them after a crash |
 | `dstfarm stop` | graceful stop through `c_shutdown(true)` — the world is saved |
-| `dstfarm status` | state, uptime, ports and which world protections actually applied |
+| `dstfarm status` | state, uptime, ports, connected players and which world protections actually applied |
 | `dstfarm update [--check]` | update itself from the GitHub release |
 | `dstfarm reset-world [--yes]` | delete the world so it is generated again with the current settings |
 | `dstfarm config [--set KEY=VALUE ...]` | show or change settings |
@@ -144,8 +144,9 @@ The world (`worldgenoverride.lua`, Master shard):
   and the dark cannot *kill* an idle character. The meters still drain: the game has no setting
   that stops hunger or sanity from falling, only ones that make the result harmless;
 * hounds, hunts, every raid boss, lightning, earthquakes and wildfires are set to `never`;
-* the whole hostile-creature group is off too — frogs, wasps, mosquitos, spiders, merms, bats
-  and the rest. Bosses are not what finishes off an idle character;
+* **both** hostile-creature groups are off — the one that decides what gets placed on the map
+  (clockworks, tentacles, spider dens, tallbirds, walruses, killer bees) and the one that governs
+  behaviour (frogs, wasps, mosquitos, merms, bats). Bosses are not what finishes off an idle character;
 * `world_size = "small"` — fewer entities, less CPU over a long uptime.
 
 The cluster (`cluster.ini`):

@@ -248,6 +248,16 @@ internal static class Program
         var protections = WorldProtections.Inspect(config);
         table.AddRow(Loc.T("защиты мира", "world protections"), DescribeProtections(protections));
 
+        if (running)
+        {
+            var players = PlayerWatch.Inspect(config);
+            table.AddRow(
+                Loc.T("игроков", "players"),
+                players.Count == 0
+                    ? Loc.T("[yellow]никого — сервер отключает бездействующих через 30 минут[/]", "[yellow]nobody — the server drops idle players after 30 minutes[/]")
+                    : $"[green]{players.Count}[/]  {Markup.Escape(players.Describe())}");
+        }
+
         console.Write(table);
 
         if (protections.LogFound && !protections.NothingObserved && protections.Missing.Count > 0)

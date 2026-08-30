@@ -128,6 +128,7 @@ Accepted values: `auto`, `ru`, `en`.
 | `dstfarm stop` | graceful stop through `c_shutdown(true)` — the world is saved |
 | `dstfarm status` | state and accumulated uptime |
 | `dstfarm update [--check]` | update itself from the GitHub release |
+| `dstfarm reset-world [--yes]` | delete the world so it is generated again with the current settings |
 | `dstfarm config [--set KEY=VALUE ...]` | show or change settings |
 
 First run: `install` → `token <TOKEN>` → `S` in the interface. The token comes from the game:
@@ -139,7 +140,8 @@ The world (`worldgenoverride.lua`, Master shard):
 
 * `day = "onlyday"` — eternal day, so Charlie never touches an idle character;
 * eternal autumn (`autumn = "verylongseason"`, other seasons `noseason`) — no freezing, no overheating;
-* `hunger = "none"`, `sanity = "none"` — the character neither starves nor goes insane;
+* `hunger = "nonlethal"` plus `darkness`, `shadowcreatures` and `brightmarecreatures` —
+  hunger and the dark cannot kill an idle character (the game has no plain `sanity` setting);
 * hounds, hunts, every raid boss, lightning, earthquakes and wildfires are set to `never`;
 * `world_size = "small"` — fewer entities, less CPU over a long uptime.
 

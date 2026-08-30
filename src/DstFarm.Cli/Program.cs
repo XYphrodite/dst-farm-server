@@ -39,6 +39,7 @@ internal static class Program
                 "stop" => await StopAsync(console, config, cts.Token).ConfigureAwait(false),
                 "status" => Status(console, config),
                 "update" => await UpdateAsync(console, config, args, cts.Token).ConfigureAwait(false),
+                "reset-world" => ResetWorld(console, config, args),
                 "config" => ShowConfig(console, config, args),
                 "--help" or "-h" or "help" => Help(console),
                 _ => Unknown(console, command),
@@ -321,6 +322,49 @@ internal static class Program
         return 0;
     }
 
+    private static int ResetWorld(IAnsiConsole console, FarmConfig config, string[] args)
+    {
+        if (new SupervisorControl(config).IsRunning)
+        {
+            console.MarkupLine(Loc.T(
+                "[red]сервер запущен:[/] сначала dstfarm stop",
+                "[red]the server is running:[/] run dstfarm stop first"));
+            return 2;
+        }
+
+        var worlds = config.Shards
+            .Select(shard => Path.Combine(config.ClusterPath, shard, "save"))
+            .Where(Directory.Exists)
+            .ToList();
+
+        if (worlds.Count == 0)
+        {
+            console.MarkupLine(Loc.T("сохранённого мира нет, удалять нечего", "there is no saved world to delete"));
+            return 0;
+        }
+
+        if (!args.Contains("--yes", StringComparer.OrdinalIgnoreCase))
+        {
+            console.MarkupLine(Loc.T(
+                "[yellow]Мир будет удалён без возможности восстановления:[/]",
+                "[yellow]The world will be deleted permanently:[/]"));
+            foreach (var world in worlds)
+                console.MarkupLineInterpolated($"  {world}");
+            console.MarkupLine(Loc.T(
+                "Повторите с [cyan]--yes[/], если действительно этого хотите.",
+                "Repeat with [cyan]--yes[/] if that is really what you want."));
+            return 1;
+        }
+
+        foreach (var path in ClusterWriter.ResetWorld(config))
+            console.MarkupLineInterpolated($"[grey]удалено:[/] {path}");
+
+        console.MarkupLine(Loc.T(
+            "мир будет создан заново при следующем запуске, уже с текущими настройками",
+            "the world will be created from scratch on the next start, with the current settings"));
+        return 0;
+    }
+
     private static int ShowConfig(IAnsiConsole console, FarmConfig config, string[] args)
     {
         var setIndex = Array.FindIndex(args, a => a.Equals("--set", StringComparison.OrdinalIgnoreCase));
@@ -384,6 +428,9 @@ internal static class Program
         console.MarkupLine(Loc.T("  [cyan]dstfarm start[/] [grey][[--detach]][/]  поднять сервер и держать живым", "  [cyan]dstfarm start[/] [grey][[--detach]][/]  start the server and keep it alive"));
         console.MarkupLine(Loc.T("  [cyan]dstfarm stop[/]               штатная остановка с сохранением мира", "  [cyan]dstfarm stop[/]               graceful stop, the world is saved"));
         console.MarkupLine(Loc.T("  [cyan]dstfarm status[/]             состояние и накопленный аптайм", "  [cyan]dstfarm status[/]             state and accumulated uptime"));
+        console.MarkupLine(Loc.T(
+            "  [cyan]dstfarm reset-world[/] [grey][[--yes]][/] удалить мир, чтобы он создался заново",
+            "  [cyan]dstfarm reset-world[/] [grey][[--yes]][/] delete the world so it is generated again"));
         console.MarkupLine(Loc.T("  [cyan]dstfarm update[/] [grey][[--check]][/]   обновить себя из релиза на GitHub", "  [cyan]dstfarm update[/] [grey][[--check]][/]   update itself from the GitHub release"));
         console.MarkupLine("  [cyan]dstfarm config[/] [grey][[--set KEY=VALUE ...]][/]");
         return 0;

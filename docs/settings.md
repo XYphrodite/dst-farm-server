@@ -12,9 +12,9 @@ server actually runs with — the interface says so in its header, and `dstfarm 
 
 The server also has to be restarted: it reads the configs at startup.
 
-> An already generated world cannot be regenerated: some overrides only apply at creation
-> time. To be sure new worldgen settings take effect, delete the `save` folder inside the
-> shard — that wipes the progress.
+> An already generated world keeps the settings baked into it at creation time: editing the
+> configs afterwards changes nothing for it. To apply new world settings, regenerate the world
+> with `dstfarm reset-world --yes` — that wipes the progress.
 
 ## Farm profile
 
@@ -22,8 +22,8 @@ The server also has to be restarted: it reads the configs at startup.
 | --- | --- | --- |
 | `OnlyDay` | `true` | `day = "onlyday"` — eternal day, Charlie never touches an idle character |
 | `EternalAutumn` | `true` | eternal autumn: `autumn = "verylongseason"`, other seasons `noseason` |
-| `NoHunger` | `true` | `hunger = "none"` — the character does not starve |
-| `NoSanityDrain` | `true` | `sanity = "none"` — sanity does not drop |
+| `NoHunger` | `true` | `hunger = "nonlethal"` — hunger cannot kill |
+| `NoSanityDrain` | `true` | `darkness = "nonlethal"`, `shadowcreatures` and `brightmarecreatures` set to `never`. The game has no plain `sanity` setting |
 | `DisableThreats` | `true` | hounds, hunts, every raid boss, lightning, earthquakes, wildfires set to `never` |
 | `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Smaller world, less CPU |
 | `GameMode` | `endless` | `endless` does not end the world on death. `survival` and `wilderness` also exist |

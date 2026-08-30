@@ -12,9 +12,9 @@ English version: [../settings.md](../settings.md).
 
 Перезапуск сервера тоже нужен: он читает конфиги при старте.
 
-> Уже сгенерированный мир перегенерации не подлежит: часть оверрайдов действует только
-> при создании мира. Чтобы новые настройки генерации точно вступили в силу, удалите
-> папку `save` внутри шарда — это сотрёт прогресс.
+> Уже созданный мир держит настройки, вшитые в него при генерации: правка конфигов после
+> этого для него ничего не меняет. Чтобы новые настройки подействовали, пересоздайте мир
+> командой `dstfarm reset-world --yes` — это сотрёт прогресс.
 
 ## Профиль фарма
 
@@ -22,8 +22,8 @@ English version: [../settings.md](../settings.md).
 | --- | --- | --- |
 | `OnlyDay` | `true` | `day = "onlyday"` — вечный день, Чарли в темноте не тронет |
 | `EternalAutumn` | `true` | вечная осень: `autumn = "verylongseason"`, остальные сезоны `noseason` |
-| `NoHunger` | `true` | `hunger = "none"` — персонаж не голодает |
-| `NoSanityDrain` | `true` | `sanity = "none"` — рассудок не падает |
+| `NoHunger` | `true` | `hunger = "nonlethal"` — голод не убивает |
+| `NoSanityDrain` | `true` | `darkness = "nonlethal"`, а `shadowcreatures` и `brightmarecreatures` в `never`. Отдельной настройки `sanity` в игре нет |
 | `DisableThreats` | `true` | гончие, охота, все рейдовые боссы, молнии, землетрясения, пожары — `never` |
 | `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Меньше мир — меньше CPU |
 | `GameMode` | `endless` | `endless` не завершает мир при смерти. Ещё есть `survival`, `wilderness` |

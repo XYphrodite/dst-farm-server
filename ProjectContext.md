@@ -27,7 +27,7 @@ actually doing — all from a full-screen terminal interface or plain commands.
 |-------|-----------|-------|
 | Application | .NET 10 console (`net10.0`) | `dstfarm.exe`, self-contained single file in Release |
 | Terminal UI | Spectre.Console 0.57.2 | Alternate screen buffer + `Live` display |
-| Tests | xUnit 2.9.3 | 160 tests, all in `DstFarm.Core.Tests` |
+| Tests | xUnit 2.9.3 | 167 tests, all in `DstFarm.Core.Tests` |
 | Managed server | DST Dedicated Server, Steam app `343050` | Installed via SteamCMD, anonymous login |
 | Distribution | GitHub Releases + `install.ps1` | SHA-256 published in the release notes |
 
@@ -50,10 +50,10 @@ Hand-written C# only, blank lines excluded.
 
 | Project | Files | Code lines |
 |---------|------:|-----------:|
-| `DstFarm.Core` | 17 | 1,763 |
+| `DstFarm.Core` | 17 | 1,847 |
 | `DstFarm.Cli` | 4 | 1,230 |
-| `DstFarm.Core.Tests` | 17 | 1,480 |
-| **Total** | **38** | **4,473** |
+| `DstFarm.Core.Tests` | 18 | 1,572 |
+| **Total** | **39** | **4,649** |
 
 ---
 
@@ -161,7 +161,7 @@ capability in this tool is built on those two surfaces plus its standard input.
 ### 3. **DstFarm.Core.Tests**
 **Type**: xUnit test project
 **Location**: `tests/DstFarm.Core.Tests/`
-**Purpose**: 160 tests over config generation, the farm profile, log parsing and the
+**Purpose**: 167 tests over config generation, the farm profile, log parsing and the
 destructive paths.
 
 **Notable coverage**:
@@ -169,7 +169,8 @@ destructive paths.
 - `LogTailTests` — append, truncation on restart, reading a file the server holds open.
 - `WorldProtectionsTests` / `PlayerWatchTests` — the real tab-separated log format.
 - `UninstallerTests` — PATH editing keeps foreign entries, ignores case and trailing slashes.
-- `ClusterSyncTests` — config/world drift detection, including hand-edited files.
+- `ClusterSyncTests` / `ClusterRewriteTests` — config/world drift detection, including
+  hand-edited files and the file DST rewrites for itself after generating a world.
 
 ---
 
@@ -278,7 +279,7 @@ dst-farm-server/
 │   └── DstFarm.Cli/             # commands + full-screen interface
 │       └── Tui/                 # Dashboard, SettingItem, LogBuffer
 ├── tests/
-│   └── DstFarm.Core.Tests/      # 160 xUnit tests
+│   └── DstFarm.Core.Tests/      # 167 xUnit tests
 ├── docs/                        # English documentation
 │   └── ru/                      # Russian documentation
 ├── install.ps1                  # one-command installer (ASCII, no BOM)
@@ -370,7 +371,7 @@ dst-farm-server/
 
 **Document Version**: v1.0
 **Last Updated**: 2026-08-30
-**Application Version**: v0.4.3
+**Application Version**: v0.4.5
 **Status**: Active
 **Repository**: `c:\Repos\dst-farm-server` (branch `main`) — https://github.com/XYphrodite/dst-farm-server
 **Authoring style**: per [ProjectContext_UserRules.md](../Reborn/desktop-client/ProjectContext_UserRules.md)

@@ -54,6 +54,7 @@ internal sealed class Dashboard
         SettingItem.Flag(Loc.T("Темнота и твари безвредны", "Darkness and shadows harmless"), () => config.NoSanityDrain, v => Change(() => config.NoSanityDrain = v)),
         // Не про генерацию мира: применяется командой консоли при входе игрока.
         SettingItem.Flag(Loc.T("Голод не идёт вовсе", "Hunger frozen"), () => config.HungerPaused, v => config.HungerPaused = v),
+        SettingItem.Flag(Loc.T("Рассудок не падает", "Sanity frozen"), () => config.SanityFrozen, v => config.SanityFrozen = v),
         SettingItem.Flag(Loc.T("Все рецепты открыты", "All recipes unlocked"), () => config.AllRecipes, v => config.AllRecipes = v),
         SettingItem.Flag(Loc.T("Без боссов и тварей", "No bosses or hostiles"), () => config.DisableThreats, v => Change(() => config.DisableThreats = v)),
         SettingItem.Choice(Loc.T("Размер мира", "World size"), WorldSizes, () => config.WorldSize, v => Change(() => config.WorldSize = v)),

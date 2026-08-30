@@ -86,8 +86,34 @@ public sealed class HungerPauseTests
     public void EachFlagContributesItsOwnCommand()
     {
         Assert.Equal([FarmConfig.PauseHungerCommand], new FarmConfig { HungerPaused = true }.MaintenanceCommands);
+        Assert.Equal([FarmConfig.FreezeSanityCommand], new FarmConfig { SanityFrozen = true }.MaintenanceCommands);
         Assert.Equal([FarmConfig.GiveAllRecipesCommand], new FarmConfig { AllRecipes = true }.MaintenanceCommands);
-        Assert.Equal(2, new FarmConfig { HungerPaused = true, AllRecipes = true }.MaintenanceCommands.Count);
+        Assert.Equal(3, new FarmConfig { HungerPaused = true, SanityFrozen = true, AllRecipes = true }.MaintenanceCommands.Count);
+    }
+
+    /// <summary>
+    /// Паузы у рассудка нет: DoDelta выходит по полю ignore, OnUpdate по нему же
+    /// пропускает пересчёт. Восполнение перед заморозкой обязательно.
+    /// </summary>
+    [Fact]
+    public void SanityIsFrozenThroughTheIgnoreFieldAfterBeingRefilled()
+    {
+        Assert.Contains("sanity:SetPercent(1)", FarmConfig.FreezeSanityCommand, StringComparison.Ordinal);
+        Assert.Contains("sanity.ignore = true", FarmConfig.FreezeSanityCommand, StringComparison.Ordinal);
+        Assert.True(
+            FarmConfig.FreezeSanityCommand.IndexOf("SetPercent", StringComparison.Ordinal)
+                < FarmConfig.FreezeSanityCommand.IndexOf("ignore", StringComparison.Ordinal),
+            "сперва восполнить, потом замораживать");
+    }
+
+    [Fact]
+    public void SanityFrozenSurvivesSavingAndLoading()
+    {
+        using var temp = new TempDirectory();
+        var file = Path.Combine(temp.Path, "config.json");
+        new FarmConfig { SanityFrozen = true }.Save(file);
+
+        Assert.True(FarmConfig.Load(file).SanityFrozen);
     }
 
     [Fact]
@@ -103,7 +129,7 @@ public sealed class HungerPauseTests
     [Fact]
     public void EveryMaintenanceCommandIsOneLineSoTheConsoleCanTakeIt()
     {
-        var config = new FarmConfig { HungerPaused = true, AllRecipes = true };
+        var config = new FarmConfig { HungerPaused = true, SanityFrozen = true, AllRecipes = true };
 
         foreach (var command in config.MaintenanceCommands)
         {

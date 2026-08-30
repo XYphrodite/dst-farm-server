@@ -81,6 +81,16 @@ public sealed class FarmConfig
     public bool AllRecipes { get; set; }
 
     /// <summary>
+    /// Полностью останавливает рассудок. Паузы у компонента нет, но есть поле ignore:
+    /// DoDelta выходит сразу, а OnUpdate пропускает пересчёт. Сперва восполняем шкалу,
+    /// иначе персонаж застынет на текущем низком значении.
+    /// </summary>
+    public const string FreezeSanityCommand =
+        "for i, p in ipairs(AllPlayers) do p.components.sanity:SetPercent(1) p.components.sanity.ignore = true end";
+
+    public bool SanityFrozen { get; set; }
+
+    /// <summary>
     /// Команды, которые подтверждаются повторно, пока игрок в мире. Однократно их слать
     /// нельзя: между подключением и появлением персонажа AllPlayers пуст.
     /// </summary>
@@ -90,6 +100,7 @@ public sealed class FarmConfig
         .. new[]
         {
             HungerPaused ? PauseHungerCommand : null,
+            SanityFrozen ? FreezeSanityCommand : null,
             AllRecipes ? GiveAllRecipesCommand : null,
         }.OfType<string>(),
     ];

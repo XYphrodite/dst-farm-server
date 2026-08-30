@@ -24,6 +24,9 @@ public static class ClusterWriter
         ("earthquakes", "never"),
         ("wildfires", "never"),
         ("frograin", "never"),
+        // weather = never переводит мир в ms_setprecipitationmode "never": дождя нет вовсе,
+        // а с ним уходят промокание, охлаждение и убыль рассудка от сырости.
+        ("weather", "never"),
         // Перегрев и переохлаждение тоже убивают AFK-персонажа.
         ("temperaturedamage", "nonlethal"),
     ];
@@ -355,6 +358,9 @@ public static class ClusterWriter
         {
             overrides.Add(("earthquakes", "never"));
             overrides.Add(("temperaturedamage", "nonlethal"));
+            overrides.Add(("weather", "never"));
+            // Кислотный дождь в пещерах включён по умолчанию и наносит урон.
+            overrides.Add(("acidrain_enabled", "none"));
             overrides.AddRange(HostileCaves.Select(key => (key, "never")));
             overrides.AddRange(HostileSpawnsCaves.Select(key => (key, "never")));
         }

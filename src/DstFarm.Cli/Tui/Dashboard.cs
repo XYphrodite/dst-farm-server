@@ -451,6 +451,10 @@ internal sealed class Dashboard
         var height = Math.Max(24, console.Profile.Height);
         var logRows = Math.Clamp(height - settings.Count - 10, 4, 16);
 
+        // Панели с фиксированной высотой: шапка 3, лог logRows+2, подвал 3.
+        // Остальное достаётся телу, и внутри него настройкам нужны свои рамки.
+        var settingsRows = Math.Max(3, height - 3 - (logRows + 2) - 3 - 2);
+
         var layout = new Layout("root").SplitRows(
             new Layout("header").Size(3),
             new Layout("body"),
@@ -466,7 +470,7 @@ internal sealed class Dashboard
             .BorderStyle(new Style(Color.Cyan1))
             .Expand());
 
-        layout["settings"].Update(new Panel(SettingsTable())
+        layout["settings"].Update(new Panel(SettingsTable(settingsRows))
             .Header(Loc.T("[cyan] настройки фарма [/]", "[cyan] farm settings [/]"))
             .Border(BoxBorder.Rounded)
             .Expand());
@@ -515,13 +519,21 @@ internal sealed class Dashboard
         return $"[bold]dstfarm {version}[/]   {state}{dirty}";
     }
 
-    private Table SettingsTable()
+    /// <summary>
+    /// Рисует настройки окном вокруг выбранной строки: список длиннее панели,
+    /// а без прокрутки нижние строки просто обрезались и до них нельзя было добраться.
+    /// </summary>
+    private Table SettingsTable(int capacity)
     {
         var table = new Table().Border(TableBorder.None).HideHeaders().Expand();
         table.AddColumn(new TableColumn(string.Empty));
         table.AddColumn(new TableColumn(string.Empty).RightAligned());
 
-        for (var i = 0; i < settings.Count; i++)
+        var (first, last) = VisibleRange(capacity);
+        if (first > 0)
+            table.AddRow(new Markup($"  [grey]↑ ещё {first}[/]"), new Markup(string.Empty));
+
+        for (var i = first; i <= last; i++)
         {
             var item = settings[i];
             var focused = i == selected;
@@ -532,8 +544,16 @@ internal sealed class Dashboard
             table.AddRow(new Markup(label), new Markup(value));
         }
 
+        var below = settings.Count - 1 - last;
+        if (below > 0)
+            table.AddRow(new Markup($"  [grey]↓ ещё {below}[/]"), new Markup(string.Empty));
+
         return table;
     }
+
+    /// <summary>Какие строки показать, чтобы выбранная всегда была видна.</summary>
+    private (int First, int Last) VisibleRange(int capacity) =>
+        ListWindow.Around(selected, settings.Count, capacity);
 
     private Table StatusTable()
     {

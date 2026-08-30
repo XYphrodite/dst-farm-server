@@ -33,9 +33,10 @@ public static partial class WorldProtections
 
     /// <summary>
     /// Настройки только для генерации: в игровом мире они не применяются заново
-    /// и в логе не печатаются, поэтому сверять по ним нечего.
+    /// и в логе не печатаются, поэтому сверять по ним нечего. Список берётся у того же
+    /// ClusterWriter, что их и пишет.
     /// </summary>
-    private static readonly string[] GenerationOnly = ["world_size"];
+    private static IReadOnlyList<string> GenerationOnly => ClusterWriter.GenerationOnlyKeys;
 
     /// <summary>Лог шарда сервер переписывает при каждом старте, поэтому там всегда текущая сессия.</summary>
     public static string LogPathFor(FarmConfig config, string shard = "Master")

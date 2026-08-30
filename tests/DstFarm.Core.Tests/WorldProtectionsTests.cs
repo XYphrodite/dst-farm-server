@@ -65,10 +65,29 @@ public sealed class WorldProtectionsTests
     {
         var report = WorldProtections.Evaluate(new FarmConfig(), new Dictionary<string, string>());
 
-        // world_size в игровом мире заново не применяется и в логе не печатается.
-        Assert.DoesNotContain(report.Checks, c => c.Key == "world_size");
+        // Эти игра применяет один раз при генерации и строкой OVERRIDE не печатает.
+        foreach (var key in (string[])["world_size", "chess", "spiders", "tentacles", "tallbirds", "walrus", "merm", "houndmound", "angrybees"])
+            Assert.DoesNotContain(report.Checks, c => c.Key == key);
+
         // season_start = default тоже не печатается.
         Assert.DoesNotContain(report.Checks, c => c.Key == "season_start");
+    }
+
+    /// <summary>
+    /// Живой мир из лога сервера: настройки поведения печатаются, генерационные — нет.
+    /// Требовать вторые означало бы вечное «применено не всё» на исправном мире.
+    /// </summary>
+    [Fact]
+    public void ACorrectlyGeneratedWorldReportsEverythingApplied()
+    {
+        var config = new FarmConfig();
+        var applied = ClusterWriter.BuildOverrides(config, caves: false)
+            .Where(o => !ClusterWriter.GenerationOnlyKeys.Contains(o.Key, StringComparer.Ordinal))
+            .ToDictionary(o => o.Key, o => o.Value, StringComparer.Ordinal);
+
+        var report = WorldProtections.Evaluate(config, applied);
+
+        Assert.True(report.AllApplied, $"не применено: {string.Join(", ", report.Missing.Select(m => m.Key))}");
     }
 
     /// <summary>Мир, созданный до исправления: голода и темноты в нём нет.</summary>

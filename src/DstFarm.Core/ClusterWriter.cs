@@ -48,6 +48,13 @@ public static class ClusterWriter
         "spiders", "houndmound", "merm", "tentacles", "chess", "walrus", "angrybees", "tallbirds",
     ];
 
+    /// <summary>
+    /// Ключи, которые действуют только при генерации мира: игра применяет их один раз
+    /// и строкой OVERRIDE не печатает, поэтому сверять живой мир по ним нельзя.
+    /// </summary>
+    public static IReadOnlyList<string> GenerationOnlyKeys =>
+        [.. new[] { "world_size" }.Concat(HostileSpawnsSurface).Concat(HostileSpawnsCaves).Distinct(StringComparer.Ordinal)];
+
     /// <summary>Та же генерационная группа, пещерная часть.</summary>
     private static readonly string[] HostileSpawnsCaves =
     [

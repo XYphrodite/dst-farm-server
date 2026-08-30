@@ -91,6 +91,7 @@ public sealed class ServerSupervisor : IDisposable
                 }
 
                 WarnAboutStalledShards();
+                await DeliverConsoleCommandsAsync().ConfigureAwait(false);
 
                 if (File.Exists(StopFlagFile))
                 {
@@ -120,6 +121,29 @@ public sealed class ServerSupervisor : IDisposable
             File.Delete(PidFile);
             File.Delete(StopFlagFile);
             Log?.Invoke(Loc.T("сервер остановлен", "server stopped"));
+        }
+    }
+
+    /// <summary>Команды из очереди уходят в консоль первого шарда — им всегда Master.</summary>
+    private async Task DeliverConsoleCommandsAsync()
+    {
+        var commands = ConsoleQueue.Drain(config);
+        if (commands.Count == 0)
+            return;
+
+        ShardRunner? master;
+        lock (sync)
+            runners.TryGetValue("Master", out master);
+
+        if (master is null)
+            return;
+
+        foreach (var command in commands)
+        {
+            var sent = await master.SendAsync(command).ConfigureAwait(false);
+            Log?.Invoke(sent
+                ? Loc.T($"в консоль: {command}", $"to console: {command}")
+                : Loc.T($"не удалось отправить в консоль: {command}", $"could not send to console: {command}"));
         }
     }
 
@@ -314,6 +338,27 @@ public sealed class ServerSupervisor : IDisposable
                 {
                     return 0;
                 }
+            }
+        }
+
+        /// <summary>Отправляет строку в консоль сервера — тем же путём, что и c_shutdown.</summary>
+        public async Task<bool> SendAsync(string command)
+        {
+            if (!Running)
+                return false;
+            try
+            {
+                await process.StandardInput.WriteLineAsync(command).ConfigureAwait(false);
+                await process.StandardInput.FlushAsync().ConfigureAwait(false);
+                return true;
+            }
+            catch (IOException)
+            {
+                return false;
+            }
+            catch (ObjectDisposedException)
+            {
+                return false;
             }
         }
 

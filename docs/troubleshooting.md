@@ -58,6 +58,27 @@ Check in order:
 
 More in [farming.md](farming.md).
 
+## Running console commands without being in the game
+
+The server has a console, and `dstfarm` already talks to it — that is how a graceful shutdown
+is delivered. Any command can go the same way:
+
+```
+dstfarm console "AllPlayers[1].components.builder:GiveAllRecipes()"
+```
+
+That one unlocks every recipe for the connected player, so no Science Machine is needed at all.
+Other useful ones:
+
+```
+dstfarm console "AllPlayers[1].components.health:SetPercent(1)"
+dstfarm console "AllPlayers[1].components.hunger:SetPercent(1)"
+dstfarm console "c_announce(\"hello\")"
+```
+
+Commands go through a queue file, because the server's stdin belongs to the supervisor process.
+The server must be running; the result appears in the server log.
+
 ## Which protections is the world actually running with
 
 Settings are baked into the world when it is generated, so the config on disk and the running

@@ -77,6 +77,42 @@ public sealed class HungerPauseTests
     }
 
     [Fact]
+    public void NothingIsMaintainedWhileEverythingIsOff()
+    {
+        Assert.Empty(new FarmConfig().MaintenanceCommands);
+    }
+
+    [Fact]
+    public void EachFlagContributesItsOwnCommand()
+    {
+        Assert.Equal([FarmConfig.PauseHungerCommand], new FarmConfig { HungerPaused = true }.MaintenanceCommands);
+        Assert.Equal([FarmConfig.GiveAllRecipesCommand], new FarmConfig { AllRecipes = true }.MaintenanceCommands);
+        Assert.Equal(2, new FarmConfig { HungerPaused = true, AllRecipes = true }.MaintenanceCommands.Count);
+    }
+
+    [Fact]
+    public void AllRecipesSurvivesSavingAndLoading()
+    {
+        using var temp = new TempDirectory();
+        var file = Path.Combine(temp.Path, "config.json");
+        new FarmConfig { AllRecipes = true }.Save(file);
+
+        Assert.True(FarmConfig.Load(file).AllRecipes);
+    }
+
+    [Fact]
+    public void EveryMaintenanceCommandIsOneLineSoTheConsoleCanTakeIt()
+    {
+        var config = new FarmConfig { HungerPaused = true, AllRecipes = true };
+
+        foreach (var command in config.MaintenanceCommands)
+        {
+            Assert.DoesNotContain((char)10, command);
+            Assert.Contains("ipairs(AllPlayers)", command, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void CommandIsOneLineSoTheConsoleCanTakeIt()
     {
         Assert.DoesNotContain('\n', FarmConfig.PauseHungerCommand);

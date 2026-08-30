@@ -48,6 +48,10 @@ public sealed class ClusterWriterTests
         Assert.Contains("shadowcreatures = \"never\"", lua, StringComparison.Ordinal);
         Assert.Contains("winter = \"noseason\"", lua, StringComparison.Ordinal);
         Assert.Contains("deerclops = \"never\"", lua, StringComparison.Ordinal);
+        // Боссы боссами, а догрызают AFK-персонажа жабы и пауки.
+        Assert.Contains("frogs = \"never\"", lua, StringComparison.Ordinal);
+        Assert.Contains("spiders_setting = \"never\"", lua, StringComparison.Ordinal);
+        Assert.Contains("wasps = \"never\"", lua, StringComparison.Ordinal);
         Assert.Contains("preset = \"SURVIVAL_TOGETHER\"", lua, StringComparison.Ordinal);
     }
 
@@ -69,6 +73,7 @@ public sealed class ClusterWriterTests
         Assert.DoesNotContain("hunger = ", lua, StringComparison.Ordinal);
         Assert.DoesNotContain("darkness = ", lua, StringComparison.Ordinal);
         Assert.DoesNotContain("deerclops", lua, StringComparison.Ordinal);
+        Assert.DoesNotContain("frogs", lua, StringComparison.Ordinal);
         Assert.Contains("world_size = \"small\"", lua, StringComparison.Ordinal);
     }
 

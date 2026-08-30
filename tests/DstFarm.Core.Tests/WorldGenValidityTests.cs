@@ -44,6 +44,27 @@ public sealed class WorldGenValidityTests
         ["earthquakes"] = Frequency,
         ["wildfires"] = Frequency,
         ["frograin"] = Frequency,
+        ["lureplants"] = Frequency,
+        ["hound_mounds"] = Frequency,
+        ["mosquitos"] = Frequency,
+        ["sharks"] = Frequency,
+        ["squid"] = Frequency,
+        ["wasps"] = Frequency,
+        ["frogs"] = Frequency,
+        ["walrus_setting"] = Frequency,
+        ["cookiecutters"] = Frequency,
+        ["pirateraids"] = Frequency,
+        ["merms"] = Frequency,
+        ["spiders_setting"] = Frequency,
+        ["spider_warriors"] = Frequency,
+        ["bats_setting"] = Frequency,
+        ["nightmarecreatures"] = Frequency,
+        ["spider_hider"] = Frequency,
+        ["spider_spitter"] = Frequency,
+        ["spider_dropper"] = Frequency,
+        ["molebats"] = Frequency,
+        ["itemmimics"] = Frequency,
+        ["chest_mimics"] = Frequency,
     };
 
     public static TheoryData<FarmConfig> Configurations() =>
@@ -74,6 +95,20 @@ public sealed class WorldGenValidityTests
                     $"недопустимое значение {key} = \"{value}\", ожидалось одно из: {string.Join(", ", Known[key])}");
             }
         }
+    }
+
+    [Fact]
+    public void CaveHostilesGoToTheCaveShardAndSurfaceOnesToTheSurface()
+    {
+        var config = new FarmConfig { EnableCaves = true };
+
+        var surface = ClusterWriter.BuildWorldGen(config, caves: false);
+        var caves = ClusterWriter.BuildWorldGen(config, caves: true);
+
+        Assert.Contains("frogs = \"never\"", surface, StringComparison.Ordinal);
+        Assert.DoesNotContain("frogs", caves, StringComparison.Ordinal);
+        Assert.Contains("nightmarecreatures = \"never\"", caves, StringComparison.Ordinal);
+        Assert.DoesNotContain("nightmarecreatures", surface, StringComparison.Ordinal);
     }
 
     [Fact]

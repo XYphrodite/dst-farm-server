@@ -130,6 +130,7 @@ Accepted values: `auto`, `ru`, `en`.
 | `dstfarm update [--check]` | update itself from the GitHub release |
 | `dstfarm reset-world [--yes]` | delete the world so it is generated again with the current settings |
 | `dstfarm console "<lua>"` | run a command in the running server's console |
+| `dstfarm uninstall-server [--yes] [--all]` | remove the installed server (~4.2 GB); the world, token and settings stay |
 | `dstfarm config [--set KEY=VALUE ...]` | show or change settings |
 
 First run: `install` → `token <TOKEN>` → `S` in the interface. The token comes from the game:

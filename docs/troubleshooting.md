@@ -118,6 +118,21 @@ The server saves on autosave and on a graceful `c_shutdown(true)`. If the proces
 through Task Manager, everything since the last autosave is lost. Stop it with `S` or
 `dstfarm stop`.
 
+## Freeing up the 4 GB
+
+The server build takes about 4.2 GB and is not always needed:
+
+```
+dstfarm stop
+dstfarm uninstall-server --yes
+```
+
+Add `--all` to drop steamcmd as well. Without `--yes` the command only lists what would go and
+how much it frees.
+
+The world, the cluster token and `config.json` are untouched, so `dstfarm install` later picks
+up exactly where you left off.
+
 ## Removing everything
 
 Delete the `.runtime` folder (server, steamcmd, logs, statistics) and the cluster folder under

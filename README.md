@@ -69,7 +69,8 @@ only reports whether an update exists. In the full-screen interface the same thi
 the `U` key. Stop the server before updating (`dstfarm stop`), otherwise the new version
 only takes effect after a restart.
 
-To uninstall: delete the install directory and drop it from PATH.
+To uninstall: `dstfarm uninstall --yes`. It removes `.runtime`, `config.json`, the PATH entry
+and finally the exe itself. Add `--all` to take the world and the cluster token with it.
 
 ## Build
 
@@ -131,6 +132,7 @@ Accepted values: `auto`, `ru`, `en`.
 | `dstfarm reset-world [--yes]` | delete the world so it is generated again with the current settings |
 | `dstfarm console "<lua>"` | run a command in the running server's console |
 | `dstfarm uninstall-server [--yes] [--all]` | remove the installed server (~4.2 GB); the world, token and settings stay |
+| `dstfarm uninstall [--yes] [--all]` | remove dstfarm itself, its files and its PATH entry |
 | `dstfarm config [--set KEY=VALUE ...]` | show or change settings |
 
 First run: `install` → `token <TOKEN>` → `S` in the interface. The token comes from the game:

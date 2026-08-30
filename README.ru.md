@@ -132,6 +132,7 @@ dstfarm config --set Language=en
 | `dstfarm update [--check]` | обновить себя из релиза на GitHub |
 | `dstfarm reset-world [--yes]` | удалить мир, чтобы он создался заново с текущими настройками |
 | `dstfarm console "<lua>"` | выполнить команду в консоли работающего сервера |
+| `dstfarm uninstall-server [--yes] [--all]` | удалить установленный сервер (~4.2 ГБ); мир, токен и настройки останутся |
 | `dstfarm config [--set KEY=VALUE ...]` | показать или поменять настройки |
 
 Первый прогон: `install` → `token <ТОКЕН>` → `S` в интерфейсе. Токен берётся в игре:

@@ -39,6 +39,21 @@ public static class ClusterWriter
         "spider_warriors", "bats_setting",
     ];
 
+    /// <summary>
+    /// Вторая группа враждебных существ — та, что решает, что вообще будет поставлено
+    /// на карту при генерации. Заводные фигуры, щупальца и tallbird-ы живут именно здесь.
+    /// </summary>
+    private static readonly string[] HostileSpawnsSurface =
+    [
+        "spiders", "houndmound", "merm", "tentacles", "chess", "walrus", "angrybees", "tallbirds",
+    ];
+
+    /// <summary>Та же генерационная группа, пещерная часть.</summary>
+    private static readonly string[] HostileSpawnsCaves =
+    [
+        "spiders", "cave_spiders", "tentacles", "chess", "bats", "fissure", "worms",
+    ];
+
     /// <summary>Та же группа, пещерная часть.</summary>
     private static readonly string[] HostileCaves =
     [
@@ -237,6 +252,7 @@ public static class ClusterWriter
             {
                 overrides.AddRange(ThreatOverrides);
                 overrides.AddRange(HostileSurface.Select(key => (key, "never")));
+                overrides.AddRange(HostileSpawnsSurface.Select(key => (key, "never")));
             }
         }
         else if (config.DisableThreats)
@@ -244,6 +260,7 @@ public static class ClusterWriter
             overrides.Add(("earthquakes", "never"));
             overrides.Add(("temperaturedamage", "nonlethal"));
             overrides.AddRange(HostileCaves.Select(key => (key, "never")));
+            overrides.AddRange(HostileSpawnsCaves.Select(key => (key, "never")));
         }
 
         return overrides;

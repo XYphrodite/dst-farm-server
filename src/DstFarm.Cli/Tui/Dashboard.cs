@@ -30,6 +30,8 @@ internal sealed class Dashboard
     private DateTimeOffset clusterCheckedAt = DateTimeOffset.MinValue;
     private ProtectionReport? protections;
     private DateTimeOffset protectionsCheckedAt = DateTimeOffset.MinValue;
+    private PlayerReport? players;
+    private DateTimeOffset playersCheckedAt = DateTimeOffset.MinValue;
     private bool busy;
     private SteamProgress? download;
 
@@ -113,6 +115,18 @@ internal sealed class Dashboard
         }
 
         return protections;
+    }
+
+    /// <summary>Тот же кеш, что и у защит: лог тяжёлый, а панель перерисовывается часто.</summary>
+    private PlayerReport Players()
+    {
+        if (players is null || DateTimeOffset.Now - playersCheckedAt > TimeSpan.FromSeconds(3))
+        {
+            players = PlayerWatch.Inspect(config);
+            playersCheckedAt = DateTimeOffset.Now;
+        }
+
+        return players;
     }
 
     private void Change(Action apply)
@@ -603,6 +617,16 @@ internal sealed class Dashboard
                 : protections.AllApplied
                     ? Loc.T($"[green]все {protections.Total}[/]", $"[green]all {protections.Total}[/]")
                     : $"[yellow]{protections.Applied}/{protections.Total}[/]");
+
+        if (supervisorTask is not null)
+        {
+            var connected = Players();
+            table.AddRow(
+                Loc.T("игроков", "players"),
+                connected.Count == 0
+                    ? Loc.T("[yellow]никого[/]", "[yellow]nobody[/]")
+                    : $"[green]{connected.Count}[/] {Markup.Escape(connected.Describe())}");
+        }
 
         var current = supervisor?.StartedAt is { } started
             ? DateTimeOffset.Now - started

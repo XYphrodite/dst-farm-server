@@ -65,6 +65,18 @@ public sealed class WorldGenValidityTests
         ["molebats"] = Frequency,
         ["itemmimics"] = Frequency,
         ["chest_mimics"] = Frequency,
+        ["spiders"] = Frequency,
+        ["cave_spiders"] = Frequency,
+        ["houndmound"] = Frequency,
+        ["merm"] = Frequency,
+        ["tentacles"] = Frequency,
+        ["chess"] = Frequency,
+        ["walrus"] = Frequency,
+        ["angrybees"] = Frequency,
+        ["tallbirds"] = Frequency,
+        ["bats"] = Frequency,
+        ["fissure"] = Frequency,
+        ["worms"] = Frequency,
     };
 
     public static TheoryData<FarmConfig> Configurations() =>

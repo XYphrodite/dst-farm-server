@@ -46,8 +46,8 @@ internal sealed class Dashboard
     [
         SettingItem.Flag(Loc.T("Вечный день", "Eternal day"), () => config.OnlyDay, v => Change(() => config.OnlyDay = v)),
         SettingItem.Flag(Loc.T("Вечная осень", "Eternal autumn"), () => config.EternalAutumn, v => Change(() => config.EternalAutumn = v)),
-        SettingItem.Flag(Loc.T("Без голода", "No hunger"), () => config.NoHunger, v => Change(() => config.NoHunger = v)),
-        SettingItem.Flag(Loc.T("Без потери рассудка", "No sanity drain"), () => config.NoSanityDrain, v => Change(() => config.NoSanityDrain = v)),
+        SettingItem.Flag(Loc.T("Голод не убивает", "Hunger cannot kill"), () => config.NoHunger, v => Change(() => config.NoHunger = v)),
+        SettingItem.Flag(Loc.T("Темнота и твари безвредны", "Darkness and shadows harmless"), () => config.NoSanityDrain, v => Change(() => config.NoSanityDrain = v)),
         SettingItem.Flag(Loc.T("Без боссов и угроз", "No bosses or threats"), () => config.DisableThreats, v => Change(() => config.DisableThreats = v)),
         SettingItem.Choice(Loc.T("Размер мира", "World size"), WorldSizes, () => config.WorldSize, v => Change(() => config.WorldSize = v)),
         SettingItem.Choice(Loc.T("Режим", "Game mode"), GameModes, () => config.GameMode, v => Change(() => config.GameMode = v)),

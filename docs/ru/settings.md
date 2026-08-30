@@ -22,8 +22,8 @@ English version: [../settings.md](../settings.md).
 | --- | --- | --- |
 | `OnlyDay` | `true` | `day = "onlyday"` — вечный день, Чарли в темноте не тронет |
 | `EternalAutumn` | `true` | вечная осень: `autumn = "verylongseason"`, остальные сезоны `noseason` |
-| `NoHunger` | `true` | `hunger = "nonlethal"` — голод не убивает |
-| `NoSanityDrain` | `true` | `darkness = "nonlethal"`, а `shadowcreatures` и `brightmarecreatures` в `never`. Отдельной настройки `sanity` в игре нет |
+| `NoHunger` | `true` | `hunger = "nonlethal"` — голод не убивает. Шкала сытости при этом падает: остановить её игра не умеет |
+| `NoSanityDrain` | `true` | `darkness = "nonlethal"`, а `shadowcreatures` и `brightmarecreatures` в `never` — темнота и тени не вредят. Сам рассудок при этом падает, настройки для него в игре нет |
 | `DisableThreats` | `true` | гончие, охота, все рейдовые боссы, молнии, землетрясения, пожары — `never` |
 | `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Меньше мир — меньше CPU |
 | `GameMode` | `endless` | `endless` не завершает мир при смерти. Ещё есть `survival`, `wilderness` |

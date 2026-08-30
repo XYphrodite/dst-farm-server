@@ -142,8 +142,9 @@ Account → Games → Servers → Add New Server.
 
 * `day = "onlyday"` — вечный день, Чарли в темноте не тронет;
 * вечная осень (`autumn = "verylongseason"`, остальные сезоны `noseason`) — ни мороза, ни перегрева;
-* `hunger = "nonlethal"` плюс `darkness`, `shadowcreatures` и `brightmarecreatures` —
-  голод и темнота не убивают AFK-персонажа (отдельной настройки `sanity` в игре нет);
+* `hunger = "nonlethal"` плюс `darkness`, `shadowcreatures` и `brightmarecreatures` — голод
+  и темнота не *убивают* AFK-персонажа. Шкалы при этом продолжают падать: настройки, которая
+  останавливает сам голод или рассудок, в игре нет — есть только та, что делает исход безвредным;
 * гончие, охота, все рейдовые боссы, молнии, землетрясения, пожары — `never`;
 * `world_size = "small"` — меньше сущностей, меньше CPU на длинном аптайме.
 

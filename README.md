@@ -140,8 +140,9 @@ The world (`worldgenoverride.lua`, Master shard):
 
 * `day = "onlyday"` — eternal day, so Charlie never touches an idle character;
 * eternal autumn (`autumn = "verylongseason"`, other seasons `noseason`) — no freezing, no overheating;
-* `hunger = "nonlethal"` plus `darkness`, `shadowcreatures` and `brightmarecreatures` —
-  hunger and the dark cannot kill an idle character (the game has no plain `sanity` setting);
+* `hunger = "nonlethal"` plus `darkness`, `shadowcreatures` and `brightmarecreatures` — hunger
+  and the dark cannot *kill* an idle character. The meters still drain: the game has no setting
+  that stops hunger or sanity from falling, only ones that make the result harmless;
 * hounds, hunts, every raid boss, lightning, earthquakes and wildfires are set to `never`;
 * `world_size = "small"` — fewer entities, less CPU over a long uptime.
 

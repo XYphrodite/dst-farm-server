@@ -16,6 +16,9 @@ public sealed class ServerSupervisor : IDisposable
     /// <summary>Здоровый сервер доходит до запуска мира за считаные секунды.</summary>
     private static readonly TimeSpan StallTimeout = TimeSpan.FromSeconds(90);
 
+    private readonly HashSet<string> seenPlayers = [];
+    private DateTimeOffset playersCheckedAt = DateTimeOffset.MinValue;
+
     public ServerSupervisor(FarmConfig config)
     {
         this.config = config ?? throw new ArgumentNullException(nameof(config));
@@ -92,6 +95,7 @@ public sealed class ServerSupervisor : IDisposable
 
                 WarnAboutStalledShards();
                 await DeliverConsoleCommandsAsync().ConfigureAwait(false);
+                await GreetNewPlayersAsync().ConfigureAwait(false);
 
                 if (File.Exists(StopFlagFile))
                 {
@@ -121,6 +125,38 @@ public sealed class ServerSupervisor : IDisposable
             File.Delete(PidFile);
             File.Delete(StopFlagFile);
             Log?.Invoke(Loc.T("сервер остановлен", "server stopped"));
+        }
+    }
+
+    /// <summary>
+    /// Выполняет настроенные команды при входе игрока. Пауза голода и подобное живут
+    /// только в компоненте и не переживают перезаход, поэтому их надо ставить заново.
+    /// </summary>
+    private async Task GreetNewPlayersAsync()
+    {
+        if (config.OnPlayerJoin.Count == 0)
+            return;
+        if (DateTimeOffset.Now - playersCheckedAt < TimeSpan.FromSeconds(5))
+            return;
+
+        playersCheckedAt = DateTimeOffset.Now;
+        var report = PlayerWatch.Inspect(config);
+        if (!report.LogFound)
+            return;
+
+        var present = report.Players.Select(p => p.Guid).ToHashSet(StringComparer.Ordinal);
+        seenPlayers.IntersectWith(present);
+
+        foreach (var player in report.Players)
+        {
+            if (!seenPlayers.Add(player.Guid))
+                continue;
+
+            Log?.Invoke(Loc.T(
+                $"вошёл {player.Name ?? player.Guid}, применяю команды входа",
+                $"{player.Name ?? player.Guid} joined, applying join commands"));
+            foreach (var command in config.OnPlayerJoin)
+                ConsoleQueue.Enqueue(config, command);
         }
     }
 

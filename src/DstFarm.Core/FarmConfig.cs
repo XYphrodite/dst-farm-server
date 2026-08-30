@@ -51,6 +51,32 @@ public sealed class FarmConfig
     public int DailyRestartHour { get; set; } = -1;
     public List<string> ExtraArguments { get; set; } = [];
 
+    /// <summary>
+    /// Команды консоли, выполняемые при каждом входе игрока. Нужны потому, что часть
+    /// состояния живёт только в компонентах и не переживает перезаход: пауза голода, например.
+    /// </summary>
+    public List<string> OnPlayerJoin { get; set; } = [];
+
+    /// <summary>
+    /// Полностью останавливает голод: Hunger:Pause() гасит и убывание шкалы, и урон от
+    /// голодания. Сытость сперва восполняется, иначе персонаж останется на нуле навсегда.
+    /// </summary>
+    public const string PauseHungerCommand =
+        "for i, p in ipairs(AllPlayers) do p.components.hunger:SetPercent(1) p.components.hunger:Pause() end";
+
+    /// <summary>Стоит ли пауза голода. Живёт в OnPlayerJoin, потому что не переживает перезаход.</summary>
+    [JsonIgnore]
+    public bool HungerPaused
+    {
+        get => OnPlayerJoin.Contains(PauseHungerCommand, StringComparer.Ordinal);
+        set
+        {
+            OnPlayerJoin.RemoveAll(c => string.Equals(c, PauseHungerCommand, StringComparison.Ordinal));
+            if (value)
+                OnPlayerJoin.Add(PauseHungerCommand);
+        }
+    }
+
     [JsonIgnore]
     public string RootPath => string.IsNullOrWhiteSpace(Root)
         ? Path.Combine(AppContext.BaseDirectory, ".runtime")

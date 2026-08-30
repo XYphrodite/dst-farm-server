@@ -71,6 +71,29 @@ public sealed class FarmConfig
     /// </summary>
     public bool HungerPaused { get; set; }
 
+    /// <summary>
+    /// Открывает игроку все рецепты, так что прототипировать у научной машины
+    /// ничего не нужно и саму машину строить не приходится.
+    /// </summary>
+    public const string GiveAllRecipesCommand =
+        "for i, p in ipairs(AllPlayers) do p.components.builder:GiveAllRecipes() end";
+
+    public bool AllRecipes { get; set; }
+
+    /// <summary>
+    /// Команды, которые подтверждаются повторно, пока игрок в мире. Однократно их слать
+    /// нельзя: между подключением и появлением персонажа AllPlayers пуст.
+    /// </summary>
+    [JsonIgnore]
+    public IReadOnlyList<string> MaintenanceCommands =>
+    [
+        .. new[]
+        {
+            HungerPaused ? PauseHungerCommand : null,
+            AllRecipes ? GiveAllRecipesCommand : null,
+        }.OfType<string>(),
+    ];
+
     [JsonIgnore]
     public string RootPath => string.IsNullOrWhiteSpace(Root)
         ? Path.Combine(AppContext.BaseDirectory, ".runtime")

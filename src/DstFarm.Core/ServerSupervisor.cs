@@ -138,7 +138,7 @@ public sealed class ServerSupervisor : IDisposable
     /// </summary>
     private async Task GreetNewPlayersAsync()
     {
-        if (config.OnPlayerJoin.Count == 0 && !config.HungerPaused)
+        if (config.OnPlayerJoin.Count == 0 && config.MaintenanceCommands.Count == 0)
             return;
         if (DateTimeOffset.Now - playersCheckedAt < TimeSpan.FromSeconds(5))
             return;
@@ -153,11 +153,11 @@ public sealed class ServerSupervisor : IDisposable
 
         // Между подключением и появлением персонажа проходит выбор героя, а до того
         // AllPlayers пуст и команда не делает ничего. Поэтому подтверждаем её повторно.
-        if (config.HungerPaused && report.Players.Count > 0
-            && DateTimeOffset.Now - hungerPausedAt > HungerPauseInterval)
+        if (report.Players.Count > 0 && DateTimeOffset.Now - hungerPausedAt > HungerPauseInterval)
         {
             hungerPausedAt = DateTimeOffset.Now;
-            ConsoleQueue.Enqueue(config, FarmConfig.PauseHungerCommand);
+            foreach (var command in config.MaintenanceCommands)
+                ConsoleQueue.Enqueue(config, command);
         }
 
         foreach (var player in report.Players)

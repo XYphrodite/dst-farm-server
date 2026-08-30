@@ -28,7 +28,8 @@ The server also has to be restarted: it reads the configs at startup.
 | `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Smaller world, less CPU |
 | `GameMode` | `endless` | `endless` does not end the world on death. `survival` and `wilderness` also exist |
 | `EnableCaves` | `false` | second shard. Doubles the load and is useless for uptime |
-| `HungerPaused` | `false` | freezes hunger completely through the server console. Not a world setting: `Hunger:Pause()` stops both the meter and the starvation damage, but does not survive a rejoin, so it is reapplied on every join |
+| `HungerPaused` | `false` | freezes hunger completely through the server console. Not a world setting: `Hunger:Pause()` stops both the meter and the starvation damage. Reconfirmed once a minute while a player is in the world — a single command at join time lands while `AllPlayers` is still empty |
+| `AllRecipes` | `false` | unlocks every recipe, so nothing needs prototyping and no Science Machine is required. Maintained the same way |
 | `OnPlayerJoin` | empty | console commands run whenever a player joins |
 
 ## Server

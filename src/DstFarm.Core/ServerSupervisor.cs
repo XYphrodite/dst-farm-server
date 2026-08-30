@@ -18,6 +18,10 @@ public sealed class ServerSupervisor : IDisposable
 
     private readonly HashSet<string> seenPlayers = [];
     private DateTimeOffset playersCheckedAt = DateTimeOffset.MinValue;
+    private DateTimeOffset hungerPausedAt = DateTimeOffset.MinValue;
+
+    /// <summary>Как часто подтверждать паузу голода, пока игрок в мире.</summary>
+    private static readonly TimeSpan HungerPauseInterval = TimeSpan.FromSeconds(60);
 
     public ServerSupervisor(FarmConfig config)
     {
@@ -134,7 +138,7 @@ public sealed class ServerSupervisor : IDisposable
     /// </summary>
     private async Task GreetNewPlayersAsync()
     {
-        if (config.OnPlayerJoin.Count == 0)
+        if (config.OnPlayerJoin.Count == 0 && !config.HungerPaused)
             return;
         if (DateTimeOffset.Now - playersCheckedAt < TimeSpan.FromSeconds(5))
             return;
@@ -146,6 +150,15 @@ public sealed class ServerSupervisor : IDisposable
 
         var present = report.Players.Select(p => p.Guid).ToHashSet(StringComparer.Ordinal);
         seenPlayers.IntersectWith(present);
+
+        // Между подключением и появлением персонажа проходит выбор героя, а до того
+        // AllPlayers пуст и команда не делает ничего. Поэтому подтверждаем её повторно.
+        if (config.HungerPaused && report.Players.Count > 0
+            && DateTimeOffset.Now - hungerPausedAt > HungerPauseInterval)
+        {
+            hungerPausedAt = DateTimeOffset.Now;
+            ConsoleQueue.Enqueue(config, FarmConfig.PauseHungerCommand);
+        }
 
         foreach (var player in report.Players)
         {

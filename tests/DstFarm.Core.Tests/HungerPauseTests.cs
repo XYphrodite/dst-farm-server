@@ -14,38 +14,24 @@ public sealed class HungerPauseTests
         Assert.Empty(config.OnPlayerJoin);
     }
 
+    /// <summary>
+    /// Пауза больше не строчка в OnPlayerJoin: между подключением и появлением персонажа
+    /// проходит выбор героя, и однократная команда попадала в пустой AllPlayers.
+    /// </summary>
     [Fact]
-    public void TurningItOnAddsTheJoinCommand()
+    public void IsNotAJoinCommandAnyMore()
     {
         var config = new FarmConfig { HungerPaused = true };
 
         Assert.True(config.HungerPaused);
-        var command = Assert.Single(config.OnPlayerJoin);
-        Assert.Contains("hunger:Pause()", command, StringComparison.Ordinal);
-        // Сперва накормить: иначе персонаж застынет на нуле сытости навсегда.
-        Assert.Contains("hunger:SetPercent(1)", command, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void TurningItOffRemovesTheCommand()
-    {
-        var config = new FarmConfig { HungerPaused = true };
-
-        config.HungerPaused = false;
-
-        Assert.False(config.HungerPaused);
         Assert.Empty(config.OnPlayerJoin);
     }
 
     [Fact]
-    public void TogglingDoesNotPileUpDuplicates()
+    public void CommandFeedsFirstThenPauses()
     {
-        var config = new FarmConfig();
-
-        for (var i = 0; i < 5; i++)
-            config.HungerPaused = true;
-
-        Assert.Single(config.OnPlayerJoin);
+        Assert.Contains("hunger:SetPercent(1)", FarmConfig.PauseHungerCommand, StringComparison.Ordinal);
+        Assert.Contains("hunger:Pause()", FarmConfig.PauseHungerCommand, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -58,6 +44,23 @@ public sealed class HungerPauseTests
         config.HungerPaused = false;
 
         Assert.Equal(["c_announce(\"привет\")"], config.OnPlayerJoin);
+    }
+
+    /// <summary>Старый config.json, где пауза лежала в OnPlayerJoin, должен переехать сам.</summary>
+    [Fact]
+    public void MigratesTheOldJoinCommandOnLoad()
+    {
+        using var temp = new TempDirectory();
+        var file = Path.Combine(temp.Path, "config.json");
+        var old = new FarmConfig();
+        old.OnPlayerJoin.Add(FarmConfig.PauseHungerCommand);
+        old.OnPlayerJoin.Add("c_announce(\"привет\")");
+        old.Save(file);
+
+        var loaded = FarmConfig.Load(file);
+
+        Assert.True(loaded.HungerPaused);
+        Assert.Equal(["c_announce(\"привет\")"], loaded.OnPlayerJoin);
     }
 
     [Fact]

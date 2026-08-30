@@ -64,18 +64,12 @@ public sealed class FarmConfig
     public const string PauseHungerCommand =
         "for i, p in ipairs(AllPlayers) do p.components.hunger:SetPercent(1) p.components.hunger:Pause() end";
 
-    /// <summary>Стоит ли пауза голода. Живёт в OnPlayerJoin, потому что не переживает перезаход.</summary>
-    [JsonIgnore]
-    public bool HungerPaused
-    {
-        get => OnPlayerJoin.Contains(PauseHungerCommand, StringComparer.Ordinal);
-        set
-        {
-            OnPlayerJoin.RemoveAll(c => string.Equals(c, PauseHungerCommand, StringComparison.Ordinal));
-            if (value)
-                OnPlayerJoin.Add(PauseHungerCommand);
-        }
-    }
+    /// <summary>
+    /// Останавливать ли голод. Применяется не однажды при входе, а повторно, пока игрок
+    /// в мире: между подключением и появлением персонажа проходят минуты выбора героя,
+    /// и в этот момент AllPlayers ещё пуст.
+    /// </summary>
+    public bool HungerPaused { get; set; }
 
     [JsonIgnore]
     public string RootPath => string.IsNullOrWhiteSpace(Root)
@@ -136,7 +130,13 @@ public sealed class FarmConfig
         if (!File.Exists(file))
             return new FarmConfig();
         var json = File.ReadAllText(file);
-        return JsonSerializer.Deserialize<FarmConfig>(json, SerializerOptions) ?? new FarmConfig();
+        var config = JsonSerializer.Deserialize<FarmConfig>(json, SerializerOptions) ?? new FarmConfig();
+
+        // До 0.4.6 пауза голода жила строкой в OnPlayerJoin и потому не срабатывала.
+        if (config.OnPlayerJoin.RemoveAll(c => string.Equals(c, PauseHungerCommand, StringComparison.Ordinal)) > 0)
+            config.HungerPaused = true;
+
+        return config;
     }
 
     public string Save(string? path = null)

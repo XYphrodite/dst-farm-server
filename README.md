@@ -129,6 +129,7 @@ Accepted values: `auto`, `ru`, `en`.
 | `dstfarm status` | state, uptime, ports, connected players and which world protections actually applied |
 | `dstfarm update [--check]` | update itself from the GitHub release |
 | `dstfarm reset-world [--yes]` | delete the world so it is generated again with the current settings |
+| `dstfarm console "<lua>"` | run a command in the running server's console |
 | `dstfarm config [--set KEY=VALUE ...]` | show or change settings |
 
 First run: `install` → `token <TOKEN>` → `S` in the interface. The token comes from the game:

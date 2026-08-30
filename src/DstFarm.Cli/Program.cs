@@ -40,6 +40,7 @@ internal static class Program
                 "status" => Status(console, config),
                 "update" => await UpdateAsync(console, config, args, cts.Token).ConfigureAwait(false),
                 "reset-world" => ResetWorld(console, config, args),
+                "console" => SendConsole(console, config, args),
                 "config" => ShowConfig(console, config, args),
                 "--help" or "-h" or "help" => Help(console),
                 _ => Unknown(console, command),
@@ -410,6 +411,36 @@ internal static class Program
             $"[yellow]{report.Applied} of {report.Total}, the world predates the changes[/]");
     }
 
+    private static int SendConsole(IAnsiConsole console, FarmConfig config, string[] args)
+    {
+        var command = string.Join(' ', args.Skip(1)).Trim();
+        if (command.Length == 0)
+        {
+            console.MarkupLine(Loc.T(
+                "[red]использование:[/] dstfarm console \"<lua>\"",
+                "[red]usage:[/] dstfarm console \"<lua>\""));
+            console.MarkupLine(Loc.T(
+                "[grey]например:[/] dstfarm console \"AllPlayers[[1]].components.builder:GiveAllRecipes()\"",
+                "[grey]for example:[/] dstfarm console \"AllPlayers[[1]].components.builder:GiveAllRecipes()\""));
+            return 2;
+        }
+
+        if (!new SupervisorControl(config).IsRunning)
+        {
+            console.MarkupLine(Loc.T(
+                "[red]сервер не запущен:[/] консоль принимает команды только на живом сервере",
+                "[red]the server is not running:[/] the console only takes commands while it is up"));
+            return 2;
+        }
+
+        ConsoleQueue.Enqueue(config, command);
+        console.MarkupLineInterpolated($"{Loc.T("отправлено", "sent")}: {command}");
+        console.MarkupLine(Loc.T(
+            "[grey]результат смотрите в логе сервера[/]",
+            "[grey]see the server log for the result[/]"));
+        return 0;
+    }
+
     private static int ShowConfig(IAnsiConsole console, FarmConfig config, string[] args)
     {
         var setIndex = Array.FindIndex(args, a => a.Equals("--set", StringComparison.OrdinalIgnoreCase));
@@ -473,6 +504,9 @@ internal static class Program
         console.MarkupLine(Loc.T("  [cyan]dstfarm start[/] [grey][[--detach]][/]  поднять сервер и держать живым", "  [cyan]dstfarm start[/] [grey][[--detach]][/]  start the server and keep it alive"));
         console.MarkupLine(Loc.T("  [cyan]dstfarm stop[/]               штатная остановка с сохранением мира", "  [cyan]dstfarm stop[/]               graceful stop, the world is saved"));
         console.MarkupLine(Loc.T("  [cyan]dstfarm status[/]             состояние и накопленный аптайм", "  [cyan]dstfarm status[/]             state and accumulated uptime"));
+        console.MarkupLine(Loc.T(
+            "  [cyan]dstfarm console <lua>[/]      выполнить команду в консоли сервера",
+            "  [cyan]dstfarm console <lua>[/]      run a command in the server console"));
         console.MarkupLine(Loc.T(
             "  [cyan]dstfarm reset-world[/] [grey][[--yes]][/] удалить мир, чтобы он создался заново",
             "  [cyan]dstfarm reset-world[/] [grey][[--yes]][/] delete the world so it is generated again"));

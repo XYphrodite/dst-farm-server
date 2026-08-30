@@ -28,6 +28,8 @@ English version: [../settings.md](../settings.md).
 | `WorldSize` | `small` | `small` / `medium` / `default` / `large` / `huge`. Меньше мир — меньше CPU |
 | `GameMode` | `endless` | `endless` не завершает мир при смерти. Ещё есть `survival`, `wilderness` |
 | `EnableCaves` | `false` | второй шард. Удваивает нагрузку, для аптайма не нужен |
+| `HungerPaused` | `false` | полностью останавливает голод через консоль сервера. Это не настройка мира: `Hunger:Pause()` гасит и шкалу, и урон от голодания, но не переживает перезаход, поэтому применяется при каждом входе |
+| `OnPlayerJoin` | пусто | команды консоли, выполняемые при входе игрока |
 
 ## Сервер
 

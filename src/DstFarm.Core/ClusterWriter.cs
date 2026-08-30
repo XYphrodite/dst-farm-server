@@ -96,7 +96,7 @@ public static class ClusterWriter
             var directory = Path.Combine(config.ClusterPath, shard);
             if (!SameContent(Path.Combine(directory, "server.ini"), BuildServerIni(config, isCaves)))
                 return false;
-            if (!SameContent(Path.Combine(directory, "worldgenoverride.lua"), BuildWorldGen(config, isCaves)))
+            if (!SameWorldGen(Path.Combine(directory, "worldgenoverride.lua"), BuildWorldGen(config, isCaves), isCaves))
                 return false;
         }
 
@@ -127,21 +127,110 @@ public static class ClusterWriter
         return removed;
     }
 
+    /// <summary>
+    /// Сравнение по смыслу, а не побайтово: DST переписывает worldgenoverride.lua после
+    /// генерации мира — меняет preset на worldgen_preset/settings_preset и подмешивает
+    /// ключи игрового режима. Побайтовое сравнение после этого не совпадёт никогда.
+    /// Считаем совпавшим, если все наши пары присутствуют; лишнее игнорируем.
+    /// </summary>
+    /// <summary>
+    /// Игра переименовывает preset в worldgen_preset и settings_preset, поэтому сверять
+    /// по нему нельзя — на смысл настроек он всё равно не влияет.
+    /// </summary>
+    private static readonly string[] RewrittenByGame = ["preset"];
+
+    /// <summary>Все ключи, которые наш генератор способен написать в файл мира.</summary>
+    private static IReadOnlyCollection<string> ManagedWorldGenKeys(bool caves)
+    {
+        var everything = new FarmConfig
+        {
+            OnlyDay = true,
+            EternalAutumn = true,
+            NoHunger = true,
+            NoSanityDrain = true,
+            DisableThreats = true,
+            EnableCaves = true,
+        };
+
+        return [.. BuildOverrides(everything, caves).Select(o => o.Key)];
+    }
+
     private static bool SameContent(string path, string expected)
     {
         if (!File.Exists(path))
             return false;
         try
         {
-            return string.Equals(
-                File.ReadAllText(path).ReplaceLineEndings(),
-                expected.ReplaceLineEndings(),
-                StringComparison.Ordinal);
+            return Matches(ParseSettings(expected), ParseSettings(File.ReadAllText(path)), managed: null);
         }
         catch (IOException)
         {
             return false;
         }
+    }
+
+    private static bool SameWorldGen(string path, string expected, bool caves)
+    {
+        if (!File.Exists(path))
+            return false;
+        try
+        {
+            return Matches(ParseSettings(expected), ParseSettings(File.ReadAllText(path)), ManagedWorldGenKeys(caves));
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Наши ключи должны совпадать, лишнее от игры игнорируется. Для файла мира
+    /// проверяется весь наш словарь: иначе выключенная настройка осталась бы незамеченной.
+    /// </summary>
+    private static bool Matches(
+        IReadOnlyDictionary<string, string> expected,
+        IReadOnlyDictionary<string, string> actual,
+        IReadOnlyCollection<string>? managed)
+    {
+        var keys = managed is null
+            ? expected.Keys
+            : [.. expected.Keys.Concat(managed).Distinct(StringComparer.Ordinal)];
+
+        foreach (var key in keys)
+        {
+            if (RewrittenByGame.Contains(key, StringComparer.Ordinal))
+                continue;
+
+            var wanted = expected.GetValueOrDefault(key);
+            var found = actual.GetValueOrDefault(key);
+            if (!string.Equals(wanted, found, StringComparison.Ordinal))
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>Достаёт пары ключ-значение из ini и из lua-таблицы оверрайдов.</summary>
+    internal static IReadOnlyDictionary<string, string> ParseSettings(string text)
+    {
+        var pairs = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var raw in (text ?? string.Empty).Split((char)10))
+        {
+            var line = raw.Trim().TrimEnd(',');
+            if (line.Length == 0 || line.StartsWith('[') || line.StartsWith("--", StringComparison.Ordinal))
+                continue;
+
+            var separator = line.IndexOf('=', StringComparison.Ordinal);
+            if (separator <= 0)
+                continue;
+
+            var key = line[..separator].Trim();
+            var value = line[(separator + 1)..].Trim().Trim('"');
+            if (key.Length > 0)
+                pairs[key] = value;
+        }
+
+        return pairs;
     }
 
     public static IReadOnlyList<string> Write(FarmConfig config, bool overwrite, Action<string>? log = null)

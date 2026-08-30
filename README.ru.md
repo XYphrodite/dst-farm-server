@@ -130,6 +130,7 @@ dstfarm config --set Language=en
 | `dstfarm stop` | штатная остановка через `c_shutdown(true)` — мир сохраняется |
 | `dstfarm status` | состояние и накопленный аптайм |
 | `dstfarm update [--check]` | обновить себя из релиза на GitHub |
+| `dstfarm reset-world [--yes]` | удалить мир, чтобы он создался заново с текущими настройками |
 | `dstfarm config [--set KEY=VALUE ...]` | показать или поменять настройки |
 
 Первый прогон: `install` → `token <ТОКЕН>` → `S` в интерфейсе. Токен берётся в игре:
@@ -141,7 +142,8 @@ Account → Games → Servers → Add New Server.
 
 * `day = "onlyday"` — вечный день, Чарли в темноте не тронет;
 * вечная осень (`autumn = "verylongseason"`, остальные сезоны `noseason`) — ни мороза, ни перегрева;
-* `hunger = "none"`, `sanity = "none"` — персонаж не голодает и не сходит с ума;
+* `hunger = "nonlethal"` плюс `darkness`, `shadowcreatures` и `brightmarecreatures` —
+  голод и темнота не убивают AFK-персонажа (отдельной настройки `sanity` в игре нет);
 * гончие, охота, все рейдовые боссы, молнии, землетрясения, пожары — `never`;
 * `world_size = "small"` — меньше сущностей, меньше CPU на длинном аптайме.
 

@@ -63,6 +63,30 @@ public static class ClusterWriter
         return true;
     }
 
+    /// <summary>
+    /// Удаляет сохранённый мир. Часть настроек вшивается в мир при генерации, поэтому
+    /// изменить их у существующего мира нельзя — только пересоздать.
+    /// </summary>
+    public static IReadOnlyList<string> ResetWorld(FarmConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+
+        var removed = new List<string>();
+        foreach (var shard in config.Shards)
+        {
+            foreach (var name in (string[])["save", "backup"])
+            {
+                var path = Path.Combine(config.ClusterPath, shard, name);
+                if (!Directory.Exists(path))
+                    continue;
+                Directory.Delete(path, recursive: true);
+                removed.Add(path);
+            }
+        }
+
+        return removed;
+    }
+
     private static bool SameContent(string path, string expected)
     {
         if (!File.Exists(path))

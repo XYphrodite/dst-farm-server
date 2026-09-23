@@ -1,6 +1,7 @@
 using System.Globalization;
 using DstFarm.Cli.Tui;
 using DstFarm.Core;
+using SelfUpdateKit;
 using Spectre.Console;
 
 namespace DstFarm.Cli;
@@ -15,7 +16,7 @@ internal static class Program
         Loc.Current = Loc.Resolve(config.Language);
 
         if (Environment.ProcessPath is { } processPath)
-            SelfUpdater.CleanupBackup(processPath);
+            DstFarmUpdate.CleanupRetired(processPath);
 
         using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
@@ -291,17 +292,16 @@ internal static class Program
     {
         var checkOnly = args.Contains("--check", StringComparer.OrdinalIgnoreCase);
         var force = args.Contains("--force", StringComparer.OrdinalIgnoreCase);
-        var updater = new SelfUpdater();
-        var current = SelfUpdater.CurrentVersion;
+        var current = DstFarmUpdate.CurrentVersion;
 
-        console.MarkupLine(Loc.T($"текущая версия: [cyan]{current.ToString(3)}[/]", $"current version: [cyan]{current.ToString(3)}[/]"));
+        console.MarkupLine(Loc.T($"текущая версия: [cyan]{current}[/]", $"current version: [cyan]{current}[/]"));
 
-        var release = await updater.FetchLatestAsync(cancellationToken).ConfigureAwait(false)
-            ?? throw new InvalidOperationException(Loc.T("не нашёл релиз с файлом dstfarm.exe", "no release with a dstfarm.exe asset was found"));
+        var exePath = DstFarmUpdate.RequireInstalledPath(Environment.ProcessPath);
+        var check = await DstFarmUpdate.CheckAsync(exePath, cancellationToken).ConfigureAwait(false);
 
-        console.MarkupLine(Loc.T($"последний релиз: [cyan]{release.Tag}[/]", $"latest release: [cyan]{release.Tag}[/]"));
+        console.MarkupLine(Loc.T($"последний релиз: [cyan]{check.Tag}[/]", $"latest release: [cyan]{check.Tag}[/]"));
 
-        if (release.Version <= current && !force)
+        if (check.Status == SelfUpdateStatus.AlreadyCurrent && !force)
         {
             console.MarkupLine(Loc.T("[green]обновление не требуется[/]", "[green]already up to date[/]"));
             return 0;
@@ -309,49 +309,56 @@ internal static class Program
 
         if (checkOnly)
         {
-            console.MarkupLine(Loc.T($"[yellow]доступно обновление[/] {release.Version.ToString(3)}: dstfarm update", $"[yellow]update available[/] {release.Version.ToString(3)}: dstfarm update"));
+            console.MarkupLine(Loc.T($"[yellow]доступно обновление[/] {check.Release}: dstfarm update", $"[yellow]update available[/] {check.Release}: dstfarm update"));
             return 0;
         }
-
-        if (Environment.ProcessPath is not { } exePath)
-            throw new InvalidOperationException(Loc.T("не удалось определить путь к dstfarm.exe", "could not determine the path to dstfarm.exe"));
 
         if (new SupervisorControl(config).IsRunning)
             console.MarkupLine(Loc.T("[yellow]сервер запущен: новая версия начнёт работать после dstfarm stop и следующего запуска[/]", "[yellow]the server is running: the new version takes effect after dstfarm stop and the next start[/]"));
 
-        if (release.Sha256 is null)
-            console.MarkupLine(Loc.T("[yellow]в описании релиза нет SHA-256, проверка контрольной суммы пропущена[/]", "[yellow]the release notes carry no SHA-256, checksum verification skipped[/]"));
+        // --force переустанавливает последний релиз через путь пина, который ставит
+        // версию даже когда она та же: так переделывается битая установка.
+        var request = force ? new SelfUpdateRequest(Tag: check.Tag) : new SelfUpdateRequest();
+        var report = await ApplyWithProgressAsync(console, exePath, request, cancellationToken).ConfigureAwait(false);
 
-        string downloaded;
+        console.MarkupLine(Loc.T($"[green]обновлено до {report.Release}[/]: {exePath}", $"[green]updated to {report.Release}[/]: {exePath}"));
+        console.MarkupLine(Loc.T("[grey]старая версия останется рядом как .old-<метка времени> и удалится при следующем запуске[/]", "[grey]the old build stays next to it as .old-<timestamp> and is removed on the next run[/]"));
+        return 0;
+    }
+
+    private static async Task<SelfUpdateReport> ApplyWithProgressAsync(
+        IAnsiConsole console, string exePath, SelfUpdateRequest request, CancellationToken cancellationToken)
+    {
+        var state = new SteamProgress(Loc.T("проверка обновления", "checking for updates"), 0, 0, 0);
+
         if (Dashboard.IsInteractiveConsole)
         {
-            downloaded = string.Empty;
+            SelfUpdateReport? report = null;
             await console.Progress()
                 .AutoClear(false)
                 .Columns(new TaskDescriptionColumn(), new ProgressBarColumn(), new PercentageColumn(), new RemainingTimeColumn())
                 .StartAsync(async context =>
                 {
                     var task = context.AddTask(Loc.T("загрузка обновления", "downloading update"), maxValue: 100);
-                    var progress = new Progress<SteamProgress>(report =>
+                    report = await DstFarmUpdate.ApplyAsync(exePath, request, progress =>
                     {
-                        task.Description = Markup.Escape(Describe(report));
-                        task.Value = Math.Clamp(report.Percent, 0, 100);
-                    });
-                    downloaded = await updater.DownloadAsync(release, progress, cancellationToken).ConfigureAwait(false);
+                        state = DstFarmUpdate.ToSteamProgress(progress, state);
+                        task.Description = Markup.Escape(Describe(state));
+                        task.Value = Math.Clamp(state.Percent, 0, 100);
+                    }, cancellationToken).ConfigureAwait(false);
                     task.Value = 100;
                 }).ConfigureAwait(false);
-        }
-        else
-        {
-            var reporter = new ThrottledProgressReporter(line => console.WriteLine(line));
-            downloaded = await updater.DownloadAsync(release, reporter, cancellationToken).ConfigureAwait(false);
+            return report!;
         }
 
-        SelfUpdater.Apply(downloaded, exePath);
-        console.MarkupLine(Loc.T($"[green]обновлено до {release.Version.ToString(3)}[/]: {exePath}", $"[green]updated to {release.Version.ToString(3)}[/]: {exePath}"));
-        console.MarkupLine(Loc.T("[grey]старая версия останется рядом как .old и удалится при следующем запуске[/]", "[grey]the old build stays next to it as .old and is removed on the next run[/]"));
-        return 0;
+        var reporter = new ThrottledProgressReporter(line => console.WriteLine(line));
+        return await DstFarmUpdate.ApplyAsync(exePath, request, progress =>
+        {
+            state = DstFarmUpdate.ToSteamProgress(progress, state);
+            reporter.Report(state);
+        }, cancellationToken).ConfigureAwait(false);
     }
+
 
     private static int ResetWorld(IAnsiConsole console, FarmConfig config, string[] args)
     {

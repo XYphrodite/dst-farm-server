@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using DstFarm.Core;
+using SelfUpdateKit;
 using Spectre.Console;
 using Spectre.Console.Rendering;
 
@@ -369,37 +370,27 @@ internal sealed class Dashboard
             return;
         }
 
-        if (Environment.ProcessPath is not { } exePath)
-        {
-            Message = Loc.T("не удалось определить путь к dstfarm.exe", "could not determine the path to dstfarm.exe");
-            return;
-        }
-
         busy = true;
         Message = Loc.T("проверяю обновления", "checking for updates");
         try
         {
-            var updater = new SelfUpdater();
-            var release = await updater.FetchLatestAsync(cancellationToken).ConfigureAwait(false);
-            if (release is null)
+            var exePath = DstFarmUpdate.RequireInstalledPath(Environment.ProcessPath);
+            var check = await DstFarmUpdate.CheckAsync(exePath, cancellationToken).ConfigureAwait(false);
+            if (check.Status == SelfUpdateStatus.AlreadyCurrent)
             {
-                Message = Loc.T("релиз с файлом dstfarm.exe не найден", "no release with a dstfarm.exe asset was found");
+                Message = Loc.T($"уже последняя версия ({check.Installed})", $"already the latest version ({check.Installed})");
                 return;
             }
 
-            var current = SelfUpdater.CurrentVersion;
-            if (release.Version <= current)
+            log.Add(Loc.T($"найдено обновление {check.Tag}, качаю", $"update {check.Tag} found, downloading"));
+            var state = new SteamProgress(Loc.T("загрузка обновления", "downloading update"), 0, 0, 0);
+            var report = await DstFarmUpdate.ApplyAsync(exePath, new SelfUpdateRequest(), progress =>
             {
-                Message = Loc.T($"уже последняя версия ({current.ToString(3)})", $"already the latest version ({current.ToString(3)})");
-                return;
-            }
+                state = DstFarmUpdate.ToSteamProgress(progress, state);
+                download = state;
+            }, cancellationToken).ConfigureAwait(false);
 
-            log.Add(Loc.T($"найдено обновление {release.Tag}, качаю", $"update {release.Tag} found, downloading"));
-            var progress = new Progress<SteamProgress>(report => download = report);
-            var file = await updater.DownloadAsync(release, progress, cancellationToken).ConfigureAwait(false);
-            SelfUpdater.Apply(file, exePath);
-
-            Message = Loc.T($"обновлено до {release.Version.ToString(3)} — перезапустите dstfarm", $"updated to {release.Version.ToString(3)} — restart dstfarm");
+            Message = Loc.T($"обновлено до {report.Release} — перезапустите dstfarm", $"updated to {report.Release} — restart dstfarm");
             log.Add(Loc.T($"новая версия установлена: {exePath}", $"new version installed: {exePath}"));
         }
         catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException or IOException)

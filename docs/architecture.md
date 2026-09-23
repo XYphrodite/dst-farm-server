@@ -46,9 +46,11 @@ time. The process is killed only if it fails to exit within 45 seconds.
 **`SupervisorControl`** — controls a supervisor running in another process: pid file, stop flag,
 and starting this same exe with the `supervise` argument.
 
-**`SelfUpdater`** — updates from GitHub releases: fetches the latest release, verifies the
-SHA-256 published in the notes, and swaps the exe. Windows will not delete a running exe but
-allows renaming it, so the old build moves to `.old` and is cleaned up on the next start.
+**`DstFarmUpdate`** — wiring for the shared SelfUpdateKit: fixed repository, asset names
+and checksum source. The library fetches the latest release, verifies the SHA-256, probes the
+staged binary and swaps the exe with rollback. Windows will not delete a running exe but
+allows renaming it, so the old build moves aside and retired copies are cleaned up on the
+next start.
 
 **`UptimeTracker`** — accumulates total uptime in `.runtime/state/uptime.json`.
 
